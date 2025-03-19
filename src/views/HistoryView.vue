@@ -2,7 +2,20 @@
   <div class="history-view">
     <div v-if="loading" class="loading-indicator">Loading...</div>
     <div v-else>
-      <LineChartComponent :chart-data="chartData" :options="chartOptions" :chart-data-ready="chartDataReady" @point-clicked="scrollToChange" />
+      <div class="time-interval-dropdown" style="text-align: right;">
+        <select v-model="selectedTimeInterval">
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+          <option value="quarterly">Quarterly</option>
+        </select>
+      </div>
+      <LineChartComponent
+        :selectedAdAccountId="selectedAdAccountId"
+        :selectedTimeInterval="selectedTimeInterval"
+        :chartStartDate="dateRange.start"
+        :chartEndDate="dateRange.end"
+      />
       <HistoryTableComponent
         :differences="filteredDifferences"
         :campaignsMap="campaignsMap"
@@ -15,8 +28,8 @@
 </template>
 
 <script>
-import LineChartComponent from '../components/LineChartComponent.vue';
 import HistoryTableComponent from '../components/HistoryTableComponent.vue';
+import LineChartComponent from '../components/LineChartComponent.vue';
 import { ref, onMounted, watch, computed } from 'vue';
 import { useStore } from 'vuex';
 import api from '../api'; // Corrected path
@@ -25,15 +38,12 @@ import { useAuth } from '../composables/auth';
 export default {
   name: 'HistoryView',
   components: {
-    LineChartComponent,
-    HistoryTableComponent
+    HistoryTableComponent,
+    LineChartComponent
   },
   setup() {
     const store = useStore();
     const { isLoggedIn, checkAuthStatus, user } = useAuth();
-    const chartData = ref({});
-    const chartOptions = ref({});
-    const chartDataReady = ref(false);
     const selectedStartDate = ref(new Date(2024, 4, 1)); // Temporarily set to 5-1-2024
     const selectedEndDate = ref(new Date(2025, 5, 1)); // Temporarily set to 8-1-2024
     const selectedAdAccountId = computed(() => store.state.selectedAdAccountId); // Get from Vuex store
@@ -42,18 +52,13 @@ export default {
     const selectedCampaigns = ref([]);
     const dateRange = ref({ start: selectedStartDate.value, end: selectedEndDate.value });
     const loading = ref(true);
+    const selectedTimeInterval = ref('daily');
 
     const getTokenFromCookies = () => {
       const cookie = document.cookie.split('; ').find(row => row.startsWith('accessToken='));
       return cookie ? cookie.split('=')[1] : null;
     };
 
-    const formatDate = (date) => {
-      const month = date.getMonth() + 1;
-      const day = date.getDate();
-      const year = date.getFullYear();
-      return `${month}/${day}/${year}`;
-    };
 
     const fetchDifferences = async () => {
       try {
@@ -123,151 +128,6 @@ export default {
       });
     });
 
-    const aggregateData = (data, interval) => {
-      const aggregatedData = {};
-
-      data.forEach(item => {
-        const date = new Date(item.dateRange.start.year, item.dateRange.start.month - 1, item.dateRange.start.day);
-        let key;
-
-        switch (interval) {
-          case 'weekly':
-            key = `${date.getFullYear()}-W${Math.ceil((date.getDate() - 1) / 7)}`;
-            break;
-          case 'monthly':
-            key = `${date.getFullYear()}-${date.getMonth() + 1}`;
-            break;
-          case 'quarterly':
-            key = `${date.getFullYear()}-Q${Math.floor(date.getMonth() / 3) + 1}`;
-            break;
-          case 'daily':
-          default:
-            key = formatDate(date);
-            break;
-        }
-
-        if (!aggregatedData[key]) {
-          aggregatedData[key] = {
-            conversions: 0,
-            clicks: 0,
-            impressions: 0,
-            spend: 0
-          };
-        }
-
-        aggregatedData[key].conversions += item.externalWebsiteConversions || 0;
-        aggregatedData[key].clicks += item.landingPageClicks || 0;
-        aggregatedData[key].impressions += item.impressions || 0;
-        aggregatedData[key].spend += parseFloat(item.costInLocalCurrency) || 0;
-      });
-
-      return aggregatedData;
-    };
-
-    const fetchMetrics = async (startDate, endDate) => {
-      if (!isLoggedIn.value || !selectedAdAccountId.value) {
-        console.error('User is not logged in or no ad account is selected');
-        return;
-      }
-
-      try {
-        const token = getTokenFromCookies();
-        if (!token) throw new Error("No authorization token found");
-
-        const params = {
-          start: formatDate(startDate),
-          end: formatDate(endDate),
-          accountId: selectedAdAccountId.value,
-          fields: 'clicks,impressions,externalWebsiteConversions,landingPageClicks,costInLocalCurrency'
-        };
-
-        const response = await api.get('/api/linkedin/chart-data', {
-          params,
-          headers: { Authorization: `Bearer ${token}` },
-          withCredentials: true
-        });
-
-        const data = response.data.elements.filter(item => {
-          const itemStartDate = new Date(item.dateRange.start.year, item.dateRange.start.month - 1, item.dateRange.start.day);
-          const itemEndDate = new Date(item.dateRange.end.year, item.dateRange.end.month - 1, item.dateRange.end.day);
-          return (itemStartDate >= startDate && itemEndDate <= endDate);
-        });
-
-        const aggregatedData = aggregateData(data); // Define aggregatedData here
-
-        const sortedDates = Object.keys(aggregatedData).sort((a, b) => new Date(a) - new Date(b));
-
-        const pointBackgroundColors = sortedDates.map(date => {
-          return filteredDifferences.value.some(diff => new Date(diff.date).toLocaleDateString() === new Date(date).toLocaleDateString()) ? 'red' : 'black';
-        });
-
-        chartData.value = {
-          labels: sortedDates,
-          datasets: [
-            {
-              label: 'Conversions',
-              data: sortedDates.map(date => aggregatedData[date].conversions),
-              borderColor: '#61bca8ff',
-              fill: false,
-              pointBackgroundColor: pointBackgroundColors
-            },
-            {
-              label: 'Clicks',
-              data: sortedDates.map(date => aggregatedData[date].clicks),
-              borderColor: '#F3D287',
-              fill: false,
-              pointBackgroundColor: pointBackgroundColors
-            },
-            {
-              label: 'Impressions',
-              data: sortedDates.map(date => aggregatedData[date].impressions),
-              borderColor: '#888',
-              fill: false,
-              pointBackgroundColor: pointBackgroundColors
-            },
-            {
-              label: 'Spend',
-              data: sortedDates.map(date => aggregatedData[date].spend),
-              borderColor: '#1C1B21',
-              fill: false,
-              pointBackgroundColor: pointBackgroundColors
-            }
-          ]
-        };
-
-        chartOptions.value = {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            x: {
-              type: 'category',
-              title: {
-                display: true,
-                text: 'Date'
-              }
-            },
-            y: {
-              position: 'right',
-              title: {
-                display: true,
-                text: 'Value'
-              }
-            }
-          },
-          plugins: {
-            datalabels: false
-          }
-        };
-
-        chartDataReady.value = true;
-      } catch (error) {
-        console.error('Error fetching metrics:', error);
-        if (error.response && error.response.status === 404) {
-          console.error('API endpoint not found:', error.response.config.url);
-        }
-      }
-    };
-
     const setDefaultAdAccountId = () => {
       if (store.state.adAccounts && store.state.adAccounts.length > 0) {
         store.dispatch('updateSelectedAdAccountId', store.state.adAccounts[0].id);
@@ -289,7 +149,6 @@ export default {
           });
         }
         await checkForChanges();
-        await fetchMetrics(selectedStartDate.value, selectedEndDate.value);
         await fetchDifferences();
       }
       loading.value = false;
@@ -297,68 +156,21 @@ export default {
 
     onMounted(initializeData);
 
-    watch([selectedStartDate, selectedEndDate], async ([newStartDate, newEndDate]) => {
-      if (newStartDate > newEndDate) {
-        alert('Start date cannot be later than end date. Please select a valid date range.');
-      } else {
-        await fetchMetrics(newStartDate, newEndDate);
-      }
-    });
-
     watch(selectedAdAccountId, async (newAdAccountId) => {
       if (newAdAccountId) {
         if (user.value && user.value.accountId) {
           await checkForChanges();
         }
-        await fetchMetrics(selectedStartDate.value, selectedEndDate.value);
         await fetchDifferences();
       }
     });
 
-    watch(filteredDifferences, async () => {
-      await fetchMetrics(selectedStartDate.value, selectedEndDate.value);
-    });
-
-
-    const scrollToChange = (dateLabel) => {
-      console.log("scrollToChange called with dateLabel:", dateLabel); // Add this log statement
-      console.log("🐒 ~ dateLabel:", dateLabel);
-      
-      const adjustedDate = new Date(dateLabel);
-      const adjustedLabelDate = adjustedDate.toISOString().split('T')[0];
-
-      const matchingDifference = filteredDifferences.value.find(diff => {
-        const diffDate = new Date(diff.date).toISOString().split('T')[0];
-        return diffDate === adjustedLabelDate;
-      });
-
-      if (matchingDifference) {
-        const changeRow = document.getElementById(`changeRow-${matchingDifference._id}`);
-        if (changeRow) {
-          changeRow.scrollIntoView({ behavior: 'smooth' });
-          changeRow.classList.add('flash-row');
-          setTimeout(() => {
-            changeRow.classList.remove('flash-row');
-          }, 3000);
-        } else {
-          console.error(`Element changeRow-${matchingDifference._id} not found`);
-        }
-      } else {
-        console.warn('No matching difference found for adjusted date:', adjustedLabelDate);
-      }
-    };
-
     const handleAdAccountChange = (newAdAccount) => {
       store.dispatch('updateSelectedAdAccountId', newAdAccount.id);
-      fetchMetrics(selectedStartDate.value, selectedEndDate.value);
       fetchDifferences();
     };
 
     return {
-      chartData,
-      chartOptions,
-      chartDataReady,
-      scrollToChange,
       selectedStartDate,
       selectedEndDate,
       handleAdAccountChange,
@@ -367,7 +179,8 @@ export default {
       selectedCampaigns,
       dateRange,
       selectedAdAccountId,
-      loading
+      loading,
+      selectedTimeInterval
     };
   }
 }

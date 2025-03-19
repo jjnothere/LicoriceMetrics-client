@@ -6,6 +6,7 @@
 </template>
 
 <script>
+import axios from 'axios';
 import { ref, onMounted, watch } from 'vue';
 import { Chart, registerables } from 'chart.js';
 
@@ -14,84 +15,82 @@ Chart.register(...registerables);
 export default {
   name: 'LineChartComponent',
   props: {
-    chartData: {
-      type: Object,
-      required: true
-    },
-    options: {
-      type: Object,
-      required: true
-    },
-    chartDataReady: {
-      type: Boolean,
-      required: true
+    selectedAdAccountId: {
+      type: String,
+      required: false
     }
   },
-  emits: ['point-clicked'],
-  setup(props, { emit }) {
+  setup(props) {
     const chartCanvas = ref(null);
     let chartInstance = null;
 
-    const handlePointClick = (event) => {
-      console.log("Point clicked:", event);
-      emit('point-clicked', event);
-    };
-
-    const renderChart = () => {
-      if (chartInstance) {
-        chartInstance.destroy();
-      }
-      chartInstance = new Chart(chartCanvas.value, {
-        type: 'line',
-        data: props.chartData,
-        options: {
-          ...props.options,
-          onClick: (event, elements) => {
-            if (elements.length > 0) {
-              const elementIndex = elements[0].index;
-              const dateLabel = props.chartData.labels[elementIndex];
-              console.log("🐒 ~ dateLabel:", dateLabel);
-              handlePointClick(dateLabel);
-            }
+    const fetchChartData = async () => {
+      try {
+        const response = await axios.get('/api/linkedin/chart-data', {
+          params: {
+            start: '2024-06-01',
+            end: '2024-08-01',
+            fields: 'clicks,costInLocalCurrency',
+            accountId: props.selectedAdAccountId || 'YOUR_FALLBACK_ID'
           },
-          onHover: (event, elements) => {
-            if (elements.length > 0) {
-              const elementIndex = elements[0].index;
-              const pointColor = props.chartData.datasets[0].pointBackgroundColor?.[elementIndex];
-              event.native.target.style.cursor = pointColor === 'red' ? 'pointer' : 'default';
-            } else {
-              event.native.target.style.cursor = 'default';
+          withCredentials: true
+        });
+
+        const elements = response.data.elements || [];
+        const labels = [];
+        const clicksData = [];
+        const spendData = [];
+
+        elements.forEach(item => {
+          const { year, month, day } = item.dateRange.start;
+          const dateLabel = `${month}/${day}/${year}`;
+          labels.push(dateLabel);
+          clicksData.push(item.clicks || 0);
+          spendData.push(item.costInLocalCurrency || 0);
+        });
+
+        if (chartInstance) chartInstance.destroy();
+        chartInstance = new Chart(chartCanvas.value, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [
+              {
+                label: 'Clicks',
+                data: clicksData,
+                borderColor: '#4caf50',
+                fill: false
+              },
+              {
+                label: 'Spend',
+                data: spendData,
+                borderColor: '#f44336',
+                fill: false
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: { type: 'category' },
+              y: { title: { display: true, text: 'Value' } }
             }
           }
-        }
-      });
+        });
+      } catch (error) {
+        console.error('Error fetching LinkedIn chart data:', error);
+      }
     };
 
-    onMounted(() => {
-      if (props.chartDataReady) {
-        renderChart();
-      }
-    });
+    onMounted(fetchChartData);
 
-    watch(() => props.chartDataReady, (newVal) => {
-      if (newVal) {
-        renderChart();
+    watch(
+      () => props.selectedAdAccountId,
+      () => {
+        fetchChartData();
       }
-    });
-
-    watch(() => props.chartData, (newData) => {
-      if (chartInstance) {
-        chartInstance.data = newData;
-        chartInstance.update();
-      }
-    });
-
-    watch(() => props.options, (newOptions) => {
-      if (chartInstance) {
-        chartInstance.options = newOptions;
-        chartInstance.update();
-      }
-    });
+    );
 
     return {
       chartCanvas
