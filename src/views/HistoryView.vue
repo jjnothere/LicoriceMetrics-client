@@ -2,6 +2,12 @@
   <div class="history-view">
     <div v-if="loading" class="loading-indicator">Loading...</div>
     <div v-else>
+      <div class="date-picker-container">
+        <label for="start-date">Start Date:</label>
+        <VueDatePicker v-model="selectedStartDate" :max-date="selectedEndDate" />
+        <label for="end-date">End Date:</label>
+        <VueDatePicker v-model="selectedEndDate" :min-date="selectedStartDate" />
+      </div>
       <div class="time-interval-dropdown" style="text-align: right;">
         <select v-model="selectedTimeInterval">
           <option value="daily">Daily</option>
@@ -34,18 +40,23 @@ import { ref, onMounted, watch, computed } from 'vue';
 import { useStore } from 'vuex';
 import api from '../api'; // Corrected path
 import { useAuth } from '../composables/auth';
+import VueDatePicker from '@vuepic/vue-datepicker';
+import '@vuepic/vue-datepicker/dist/main.css';
 
 export default {
   name: 'HistoryView',
   components: {
     HistoryTableComponent,
-    LineChartComponent
+    LineChartComponent,
+    VueDatePicker
   },
   setup() {
     const store = useStore();
     const { isLoggedIn, checkAuthStatus, user } = useAuth();
-    const selectedStartDate = ref(new Date(2024, 4, 1)); // Temporarily set to 5-1-2024
-    const selectedEndDate = ref(new Date(2025, 5, 1)); // Temporarily set to 8-1-2024
+    const today = new Date();
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const selectedStartDate = ref(firstDayOfMonth);
+    const selectedEndDate = ref(today);
     const selectedAdAccountId = computed(() => store.state.selectedAdAccountId); // Get from Vuex store
     const differences = ref([]);
     const campaignsMap = ref({});
@@ -54,11 +65,14 @@ export default {
     const loading = ref(true);
     const selectedTimeInterval = ref('daily');
 
+    watch([selectedStartDate, selectedEndDate], () => {
+      dateRange.value = { start: selectedStartDate.value, end: selectedEndDate.value };
+    });
+
     const getTokenFromCookies = () => {
       const cookie = document.cookie.split('; ').find(row => row.startsWith('accessToken='));
       return cookie ? cookie.split('=')[1] : null;
     };
-
 
     const fetchDifferences = async () => {
       try {
@@ -228,5 +242,15 @@ export default {
   font-size: 1.5em;
   color: #1C1B21;
   margin-top: 20px;
+}
+
+.date-picker-container {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.date-picker-container label {
+  margin-right: 10px;
 }
 </style>
