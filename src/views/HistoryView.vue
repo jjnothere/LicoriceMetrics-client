@@ -8,6 +8,16 @@
         <label for="end-date">End Date:</label>
         <VueDatePicker v-model="selectedEndDate" :min-date="selectedStartDate" />
       </div>
+      <div class="metric-dropdowns">
+        <label for="metric1">Metric 1:</label>
+        <select v-model="selectedMetric1">
+          <option v-for="metric in metrics" :key="metric" :value="metric">{{ metric }}</option>
+        </select>
+        <label for="metric2">Metric 2:</label>
+        <select v-model="selectedMetric2">
+          <option v-for="metric in metrics" :key="metric" :value="metric">{{ metric }}</option>
+        </select>
+      </div>
       <div class="time-interval-dropdown" style="text-align: right;">
         <select v-model="selectedTimeInterval">
           <option value="daily">Daily</option>
@@ -21,6 +31,8 @@
         :selectedTimeInterval="selectedTimeInterval"
         :chartStartDate="dateRange.start"
         :chartEndDate="dateRange.end"
+        :metric1="selectedMetric1"
+        :metric2="selectedMetric2"
       />
       <HistoryTableComponent
         :differences="filteredDifferences"
@@ -64,8 +76,13 @@ export default {
     const dateRange = ref({ start: selectedStartDate.value, end: selectedEndDate.value });
     const loading = ref(true);
     const selectedTimeInterval = ref('daily');
+    const metrics = [
+      'actionClicks', 'adUnitClicks', 'approximateMemberReach', 'cardClicks', 'cardImpressions', 'clicks', 'commentLikes', 'comments', 'companyPageClicks', 'conversionValueInLocalCurrency', 'costInLocalCurrency', 'costInUsd', 'costPerQualifiedLead', 'documentCompletions', 'documentFirstQuartileCompletions', 'documentMidpointCompletions', 'documentThirdQuartileCompletions', 'downloadClicks', 'externalWebsiteConversions', 'externalWebsitePostClickConversions', 'externalWebsitePostViewConversions', 'follows', 'fullScreenPlays', 'headlineClicks', 'headlineImpressions', 'impressions', 'jobApplications', 'jobApplyClicks', 'landingPageClicks', 'leadGenerationMailContactInfoShares', 'leadGenerationMailInterestedClicks', 'likes', 'oneClickLeadFormOpens', 'oneClickLeads', 'opens', 'otherEngagements', 'pivotValues', 'postClickJobApplications', 'postClickJobApplyClicks', 'postClickRegistrations', 'postViewJobApplications', 'postViewJobApplyClicks', 'postViewRegistrations', 'qualifiedLeads', 'reactions', 'registrations', 'sends', 'shares', 'talentLeads', 'textUrlClicks', 'totalEngagements', 'validWorkEmailLeads', 'videoCompletions', 'videoFirstQuartileCompletions', 'videoMidpointCompletions', 'videoStarts', 'videoThirdQuartileCompletions', 'videoViews', 'viralCardClicks', 'viralCardImpressions', 'viralClicks', 'viralCommentLikes', 'viralComments', 'viralCompanyPageClicks', 'viralDocumentCompletions', 'viralDocumentFirstQuartileCompletions', 'viralDocumentMidpointCompletions', 'viralDocumentThirdQuartileCompletions', 'viralDownloadClicks', 'viralExternalWebsiteConversions', 'viralExternalWebsitePostClickConversions', 'viralExternalWebsitePostViewConversions', 'viralFollows', 'viralFullScreenPlays', 'viralImpressions', 'viralJobApplications', 'viralJobApplyClicks', 'viralLandingPageClicks', 'viralLikes', 'viralOneClickLeadFormOpens', 'viralOneClickLeads', 'viralOtherEngagements', 'viralPostClickJobApplications', 'viralPostClickJobApplyClicks', 'viralPostClickRegistrations', 'viralPostViewJobApplications', 'viralPostViewJobApplyClicks', 'viralPostViewRegistrations', 'viralReactions', 'viralRegistrations', 'viralShares', 'viralTotalEngagements', 'viralVideoCompletions', 'viralVideoFirstQuartileCompletions', 'viralVideoMidpointCompletions', 'viralVideoStarts', 'viralVideoThirdQuartileCompletions', 'viralVideoViews'
+    ];
+    const selectedMetric1 = ref('clicks');
+    const selectedMetric2 = ref('costInLocalCurrency');
 
-    watch([selectedStartDate, selectedEndDate], () => {
+    watch([selectedStartDate, selectedEndDate, selectedMetric1, selectedMetric2], () => {
       dateRange.value = { start: selectedStartDate.value, end: selectedEndDate.value };
     });
 
@@ -194,7 +211,10 @@ export default {
       dateRange,
       selectedAdAccountId,
       loading,
-      selectedTimeInterval
+      selectedTimeInterval,
+      metrics,
+      selectedMetric1,
+      selectedMetric2
     };
   }
 }
@@ -251,6 +271,16 @@ export default {
 }
 
 .date-picker-container label {
+  margin-right: 10px;
+}
+
+.metric-dropdowns {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.metric-dropdowns label {
   margin-right: 10px;
 }
 </style>

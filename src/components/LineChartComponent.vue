@@ -30,11 +30,20 @@ export default {
     chartEndDate: {
       type: Date,
       required: true
+    },
+    metric1: {
+      type: String,
+      required: true
+    },
+    metric2: {
+      type: String,
+      required: true
     }
   },
   setup(props) {
     const chartCanvas = ref(null);
     let chartInstance = null;
+    const allData = ref([]);
 
     const computedGranularity = computed(() => {
       switch (props.selectedTimeInterval) {
@@ -82,17 +91,17 @@ export default {
       sortedElements.forEach(item => {
         const key = formatKey(item);
         if (!aggregatedMap[key]) {
-          aggregatedMap[key] = { clicks: 0, costInLocalCurrency: 0, rawDate: item.dateRange.start };
+          aggregatedMap[key] = { metric1: 0, metric2: 0, rawDate: item.dateRange.start };
         }
-        aggregatedMap[key].clicks += (item.clicks || 0);
-        aggregatedMap[key].costInLocalCurrency += parseFloat(item.costInLocalCurrency) || 0;
+        aggregatedMap[key].metric1 += parseFloat(item[props.metric1]) || 0;
+        aggregatedMap[key].metric2 += parseFloat(item[props.metric2]) || 0;
       });
 
       return Object.entries(aggregatedMap).map(([key, data]) => ({
         key,
         date: data.rawDate,
-        clicks: data.clicks,
-        costInLocalCurrency: data.costInLocalCurrency
+        metric1: data.metric1,
+        metric2: data.metric2
       })).sort((a, b) => {
         const dateA = new Date(a.date.year, a.date.month - 1, a.date.day);
         const dateB = new Date(b.date.year, b.date.month - 1, b.date.day);
@@ -105,7 +114,7 @@ export default {
         return dateString; // Return the quarterly format as is
       }
       const date = new Date(dateString);
-      const month = date.getMonth(); // Ensure 1-based month
+      const month = date.getMonth() + 1; // Ensure 1-based month
       const day = date.getDate(); // No leading zero for the day
       const year = date.getFullYear();
       return `${month}/${day}/${year}`; // Format as "M/D/YYYY"
@@ -114,85 +123,87 @@ export default {
     const fetchChartData = async () => {
       try {
         const startDate = formatDate(props.chartStartDate);
-        console.log("🐒 ~ startDate:", startDate)
         const endDate = formatDate(props.chartEndDate);
-        console.log("🐒 ~ endDate:", endDate)
 
         const response = await axios.get('/api/linkedin/chart-data', {
           params: {
             start: startDate,
             end: endDate,
-            fields: 'clicks,costInLocalCurrency',
+            fields: `${props.metric1},${props.metric2}`,
             accountId: props.selectedAdAccountId || 'YOUR_FALLBACK_ID',
             timeGranularity: computedGranularity.value
           },
           withCredentials: true
         });
 
-        const elements = response.data.elements || [];
-        const filteredElements = elements.filter(item => {
-          const itemDate = new Date(item.dateRange.start.year, item.dateRange.start.month - 1, item.dateRange.start.day);
-          return itemDate >= new Date(startDate) && itemDate <= new Date(endDate);
-        });
-
-        filteredElements.sort((a, b) => {
-          const dateA = new Date(a.dateRange.start.year, a.dateRange.start.month - 1, a.dateRange.start.day);
-          const dateB = new Date(b.dateRange.start.year, b.dateRange.start.month - 1, b.dateRange.start.day);
-          return dateA - dateB;
-        });
-
-        const aggregated = groupByInterval(filteredElements, computedGranularity.value);
-        const labels = [];
-        const clicksData = [];
-        const spendData = [];
-
-        aggregated.forEach(item => {
-          labels.push(item.key.startsWith('Q') ? item.key : formatDateLabel(item.key.replace(/^./, '')));
-          clicksData.push(item.clicks);
-          spendData.push(item.costInLocalCurrency);
-        });
-
-        if (chartInstance) chartInstance.destroy();
-        chartInstance = new Chart(chartCanvas.value, {
-          type: 'line',
-          data: {
-            labels,
-            datasets: [
-              {
-                label: 'Clicks',
-                data: clicksData,
-                borderColor: '#4caf50',
-                fill: false
-              },
-              {
-                label: 'Spend',
-                data: spendData,
-                borderColor: '#f44336',
-                fill: false
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-              x: { type: 'category' },
-              y: {
-                position: 'right',
-                title: { display: true, text: 'Value' }
-              }
-            }
-          }
-        });
+        allData.value = response.data.elements || [];
+        updateChart();
       } catch (error) {
         console.error('Error fetching LinkedIn chart data:', error);
       }
     };
 
+    const updateChart = () => {
+      const filteredElements = allData.value.filter(item => {
+        const itemDate = new Date(item.dateRange.start.year, item.dateRange.start.month - 1, item.dateRange.start.day);
+        return itemDate >= new Date(props.chartStartDate) && itemDate <= new Date(props.chartEndDate);
+      });
+
+      filteredElements.sort((a, b) => {
+        const dateA = new Date(a.dateRange.start.year, a.dateRange.start.month - 1, a.dateRange.start.day);
+        const dateB = new Date(b.dateRange.start.year, b.dateRange.start.month - 1, b.dateRange.start.day);
+        return dateA - dateB;
+      });
+
+      const aggregated = groupByInterval(filteredElements, computedGranularity.value);
+      const labels = [];
+      const metric1Data = [];
+      const metric2Data = [];
+
+      aggregated.forEach(item => {
+        labels.push(item.key.startsWith('Q') ? item.key : formatDateLabel(item.key.replace(/^./, '')));
+        metric1Data.push(item.metric1);
+        metric2Data.push(item.metric2);
+      });
+
+      if (chartInstance) chartInstance.destroy();
+      chartInstance = new Chart(chartCanvas.value, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: props.metric1,
+              data: metric1Data,
+              borderColor: '#4caf50',
+              fill: false
+            },
+            {
+              label: props.metric2,
+              data: metric2Data,
+              borderColor: '#f44336',
+              fill: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { type: 'category' },
+            y: {
+              position: 'right',
+              title: { display: true, text: 'Value' }
+            }
+          }
+        }
+      });
+    };
+
     onMounted(fetchChartData);
 
     watch(
-      () => [props.selectedAdAccountId, props.selectedTimeInterval, props.chartStartDate, props.chartEndDate],
+      () => [props.selectedAdAccountId, props.selectedTimeInterval, props.chartStartDate, props.chartEndDate, props.metric1, props.metric2],
       () => {
         fetchChartData();
       }
