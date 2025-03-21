@@ -34,6 +34,7 @@
         :metric1="selectedMetric1"
         :metric2="selectedMetric2"
       />
+      <FilterComponent />
       <HistoryTableComponent
         :differences="filteredDifferences"
         :campaignsMap="campaignsMap"
@@ -48,6 +49,7 @@
 <script>
 import HistoryTableComponent from '../components/HistoryTableComponent.vue';
 import LineChartComponent from '../components/LineChartComponent.vue';
+import FilterComponent from '../components/FilterComponent.vue';
 import { ref, onMounted, watch, computed } from 'vue';
 import { useStore } from 'vuex';
 import api from '../api'; // Corrected path
@@ -60,7 +62,8 @@ export default {
   components: {
     HistoryTableComponent,
     LineChartComponent,
-    VueDatePicker
+    VueDatePicker,
+    FilterComponent
   },
   setup() {
     const store = useStore();
