@@ -38,6 +38,10 @@ export default {
     metric2: {
       type: String,
       required: true
+    },
+    selectedCampaignIds: {
+      type: Array,
+      required: false
     }
   },
   setup(props) {
@@ -131,7 +135,8 @@ export default {
             end: endDate,
             fields: `${props.metric1},${props.metric2}`,
             accountId: props.selectedAdAccountId || 'YOUR_FALLBACK_ID',
-            timeGranularity: computedGranularity.value
+            timeGranularity: computedGranularity.value,
+            campaigns: props.selectedCampaignIds // Send campaigns as an array
           },
           withCredentials: true
         });
@@ -203,7 +208,7 @@ export default {
     onMounted(fetchChartData);
 
     watch(
-      () => [props.selectedAdAccountId, props.selectedTimeInterval, props.chartStartDate, props.chartEndDate, props.metric1, props.metric2],
+      () => [props.selectedAdAccountId, props.selectedTimeInterval, props.chartStartDate, props.chartEndDate, props.metric1, props.metric2, props.selectedCampaignIds],
       () => {
         fetchChartData();
       }

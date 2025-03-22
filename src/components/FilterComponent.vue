@@ -7,7 +7,7 @@
     <button class="filter-button">Status/Name</button>
     <button class="filter-button">Creatives</button>
     <button class="filter-button" @click="openModal">Select</button>
-    <ModalComponent v-if="showModal" @close="closeModal" :campaignGroups="campaignGroups" :selectedCampaigns="selectedCampaigns" @update:selectedCampaigns="updateSelectedCampaigns" />
+    <ModalComponent v-if="showModal" @close="closeModal" :campaignGroups="campaignGroups" :selectedCampaigns="selectedCampaigns" @update:selectedCampaigns="updateSelectedCampaigns" @campaignIdsEmitted="emitCampaignIds" />
   </div>
 </template>
 
@@ -17,6 +17,12 @@ import ModalComponent from './ModalComponent.vue';
 
 export default {
   name: 'FilterComponent',
+  props: {
+    selectedCampaignIds: {
+      type: Array,
+      required: true
+    }
+  },
   components: {
     ModalComponent
   },
@@ -45,6 +51,9 @@ export default {
     },
     updateSelectedCampaigns(newSelectedCampaigns) {
       this.selectedCampaigns = newSelectedCampaigns;
+    },
+    emitCampaignIds(ids) {
+      this.$emit('campaignIdsEmitted', ids);
     }
   }
 };

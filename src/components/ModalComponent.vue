@@ -49,6 +49,7 @@ export default {
     },
     ok() {
       this.$emit('update:selectedCampaigns', this.localSelectedCampaigns);
+      this.$emit('campaignIdsEmitted', this.localSelectedCampaigns); // Emit the selected campaign IDs
       this.close();
     },
     toggleGroup(group) {

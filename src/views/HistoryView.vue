@@ -33,8 +33,12 @@
         :chartEndDate="dateRange.end"
         :metric1="selectedMetric1"
         :metric2="selectedMetric2"
+        :selectedCampaignIds="selectedCampaignIds"
       />
-      <FilterComponent />
+      <FilterComponent
+        :selectedCampaignIds="selectedCampaignIds"
+        @campaignIdsEmitted="logCampaignIds"
+      />
       <HistoryTableComponent
         :differences="filteredDifferences"
         :campaignsMap="campaignsMap"
@@ -76,6 +80,7 @@ export default {
     const differences = ref([]);
     const campaignsMap = ref({});
     const selectedCampaigns = ref([]);
+    const selectedCampaignIds = ref([]);
     const dateRange = ref({ start: selectedStartDate.value, end: selectedEndDate.value });
     const loading = ref(true);
     const selectedTimeInterval = ref('daily');
@@ -84,6 +89,7 @@ export default {
     ];
     const selectedMetric1 = ref('clicks');
     const selectedMetric2 = ref('costInLocalCurrency');
+    const campaignGroups = ref([]);
 
     watch([selectedStartDate, selectedEndDate, selectedMetric1, selectedMetric2], () => {
       dateRange.value = { start: selectedStartDate.value, end: selectedEndDate.value };
@@ -147,6 +153,10 @@ export default {
       }
     };
 
+    const fetchCampaignGroups = async () => {
+      // ...existing code...
+    };
+
     const filteredDifferences = computed(() => {
       if (!dateRange.value.start || !dateRange.value.end) {
         console.error("Date range is not properly defined", dateRange.value);
@@ -184,6 +194,7 @@ export default {
         }
         await checkForChanges();
         await fetchDifferences();
+        await fetchCampaignGroups();
       }
       loading.value = false;
     };
@@ -204,6 +215,11 @@ export default {
       fetchDifferences();
     };
 
+    const logCampaignIds = (ids) => {
+      console.log('Emitted Campaign IDs:', ids);
+      selectedCampaignIds.value = ids;
+    };
+
     return {
       selectedStartDate,
       selectedEndDate,
@@ -217,7 +233,10 @@ export default {
       selectedTimeInterval,
       metrics,
       selectedMetric1,
-      selectedMetric2
+      selectedMetric2,
+      campaignGroups,
+      logCampaignIds,
+      selectedCampaignIds
     };
   }
 }
