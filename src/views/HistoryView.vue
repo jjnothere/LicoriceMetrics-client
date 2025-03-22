@@ -153,10 +153,6 @@ export default {
       }
     };
 
-    const fetchCampaignGroups = async () => {
-      // ...existing code...
-    };
-
     const filteredDifferences = computed(() => {
       if (!dateRange.value.start || !dateRange.value.end) {
         console.error("Date range is not properly defined", dateRange.value);
@@ -166,8 +162,7 @@ export default {
       return differences.value.filter(diff => {
         const diffDate = new Date(diff.date);
         const isWithinDateRange = diffDate >= new Date(dateRange.value.start) && diffDate <= new Date(dateRange.value.end);
-        const selectedCampaignNames = selectedCampaigns.value.map(id => campaignsMap.value[id]);
-        const isSelectedCampaign = selectedCampaigns.value.length === 0 || selectedCampaignNames.includes(diff.campaign);
+        const isSelectedCampaign = selectedCampaignIds.value.length === 0 || selectedCampaignIds.value.includes(diff.campaignId);
         return isWithinDateRange && isSelectedCampaign;
       });
     });
@@ -194,7 +189,6 @@ export default {
         }
         await checkForChanges();
         await fetchDifferences();
-        await fetchCampaignGroups();
       }
       loading.value = false;
     };
