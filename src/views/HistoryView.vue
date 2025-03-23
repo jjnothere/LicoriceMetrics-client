@@ -179,27 +179,51 @@ export default {
         const diffDate = new Date(diff.date);
         const isWithinDateRange = diffDate >= new Date(dateRange.value.start) && diffDate <= new Date(dateRange.value.end);
         const isSelectedCampaign = selectedCampaignIds.value.length === 0 || selectedCampaignIds.value.includes(diff.campaignId);
-        const isCreativeChange = showCreativesOnly.value && diff.changes && diff.changes.creatives;
-        const isBudgetChange = showBudgetOnly.value && diff.changes && (diff.changes.dailyBudget || diff.changes.unitCost);
-        const isAdTypeChange = showAdTypeOnly.value && diff.changes && diff.changes.type;
-        const isAudienceChange = showAudienceOnly.value && diff.changes && diff.changes.targetingCriteria;
-        const isNameStatusChange = showNameStatusOnly.value && diff.changes && (diff.changes.name || diff.changes.status);
-        const isObjLocLangChange = showObjLocLangOnly.value && diff.changes && (diff.changes.local || diff.changes.objectiveType || diff.changes.locale);
-        const isAnyChange = isCreativeChange || isBudgetChange || isAdTypeChange || isAudienceChange || isNameStatusChange || isObjLocLangChange;
-        return isWithinDateRange && isSelectedCampaign && (activeFilters.value.includes('all') || activeFilters.value.length === 1 || isAnyChange);
+
+        // Define change types
+        const isCreativeChange = diff.changes && diff.changes.creatives;
+        const isBudgetChange = diff.changes && (diff.changes.dailyBudget || diff.changes.unitCost);
+        const isAdTypeChange = diff.changes && diff.changes.type;
+        const isAudienceChange = diff.changes && diff.changes.targetingCriteria;
+        const isNameStatusChange = diff.changes && (diff.changes.name || diff.changes.status);
+        const isObjLocLangChange = diff.changes && (diff.changes.local || diff.changes.objectiveType || diff.changes.locale);
+
+        // Check if no type filters are active
+        const noTypeFiltersActive =
+          !showCreativesOnly.value &&
+          !showBudgetOnly.value &&
+          !showAdTypeOnly.value &&
+          !showAudienceOnly.value &&
+          !showNameStatusOnly.value &&
+          !showObjLocLangOnly.value;
+
+        // If type filters are active, check if diff matches at least one of them.
+        const matchesAtLeastOneTypeFilter =
+          (showCreativesOnly.value && isCreativeChange) ||
+          (showBudgetOnly.value && isBudgetChange) ||
+          (showAdTypeOnly.value && isAdTypeChange) ||
+          (showAudienceOnly.value && isAudienceChange) ||
+          (showNameStatusOnly.value && isNameStatusChange) ||
+          (showObjLocLangOnly.value && isObjLocLangChange);
+
+        // If no type filters are active, we treat it as "match all changes".
+        const typeFilterCondition = noTypeFiltersActive || matchesAtLeastOneTypeFilter;
+
+        return isWithinDateRange && isSelectedCampaign && typeFilterCondition;
       }).map(diff => {
         if (diff.changes && diff.changes.creatives) {
           diff.changes.creatives = diff.changes.creatives.map(creative => {
             return {
               ...creative,
-              description: creative.added ? `Added creative: ${creative.name}` : `Removed creative: ${creative.name}`
+              description: creative.added
+                ? `Added creative: ${creative.name}`
+                : `Removed creative: ${creative.name}`
             };
           });
         }
         return diff;
       });
     });
-
     const setDefaultAdAccountId = () => {
       if (store.state.adAccounts && store.state.adAccounts.length > 0) {
         store.dispatch('updateSelectedAdAccountId', store.state.adAccounts[0].id);
