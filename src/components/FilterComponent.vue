@@ -1,12 +1,13 @@
 <template>
   <div class="filter-container">
-    <button class="filter-button">Budget/Bids</button>
-    <button class="filter-button">Audience</button>
-    <button class="filter-button">Obj/Loc/Lang</button>
-    <button class="filter-button">Ad Type</button>
-    <button class="filter-button">Status/Name</button>
-    <button class="filter-button">Creatives</button>
-    <button class="filter-button" @click="openModal">Select</button>
+    <button class="filter-button" :class="{ active: isActive('all') }" @click="clearAll">All Changes</button>
+    <button class="filter-button" :class="{ active: isActive('budget') }" @click="toggleBudget">Budget/Bids</button>
+    <button class="filter-button" :class="{ active: isActive('audience') }" @click="toggleAudience">Audience</button>
+    <button class="filter-button" :class="{ active: isActive('objLocLang') }" @click="toggleObjLocLang">Obj/Loc/Lang</button>
+    <button class="filter-button" :class="{ active: isActive('adType') }" @click="toggleAdType">Ad Type</button>
+    <button class="filter-button" :class="{ active: isActive('nameStatus') }" @click="toggleNameStatus">Status/Name</button>
+    <button class="filter-button" :class="{ active: isActive('creatives') }" @click="toggleCreatives">Creatives</button>
+    <button class="filter-button" :class="{ active: isActive('select') }" @click="openModal">Select</button>
     <ModalComponent v-if="showModal" @close="closeModal" :campaignGroups="campaignGroups" :selectedCampaigns="selectedCampaigns" @update:selectedCampaigns="updateSelectedCampaigns" @campaignIdsEmitted="emitCampaignIds" />
   </div>
 </template>
@@ -20,6 +21,14 @@ export default {
   props: {
     selectedCampaignIds: {
       type: Array,
+      required: true
+    },
+    activeFilters: {
+      type: Array,
+      required: true
+    },
+    updateActiveFilters: {
+      type: Function,
       required: true
     }
   },
@@ -42,18 +51,48 @@ export default {
         });
         this.campaignGroups = response.data;
         this.showModal = true;
+        this.updateActiveFilters('select', true);
       } catch (error) {
         console.error('Error fetching campaign groups:', error);
       }
     },
     closeModal() {
       this.showModal = false;
+      this.updateActiveFilters('select', this.selectedCampaigns.length > 0);
     },
     updateSelectedCampaigns(newSelectedCampaigns) {
       this.selectedCampaigns = newSelectedCampaigns;
+      this.updateActiveFilters('select', this.selectedCampaigns.length > 0);
     },
     emitCampaignIds(ids) {
       this.$emit('campaignIdsEmitted', ids);
+    },
+    toggleCreatives() {
+      this.$emit('toggleCreativesFilter');
+    },
+    toggleBudget() {
+      this.$emit('toggleBudgetFilter');
+    },
+    toggleAdType() {
+      this.$emit('toggleAdTypeFilter');
+    },
+    toggleAudience() {
+      this.$emit('toggleAudienceFilter');
+    },
+    toggleNameStatus() {
+      this.$emit('toggleNameStatusFilter');
+    },
+    toggleObjLocLang() {
+      this.$emit('toggleObjLocLangFilter');
+    },
+    clearAll() {
+      this.$emit('clearAllFilters');
+      this.selectedCampaigns = [];
+      this.$emit('update:selectedCampaigns', this.selectedCampaigns);
+      this.$emit('campaignIdsEmitted', this.selectedCampaigns);
+    },
+    isActive(filter) {
+      return this.activeFilters.includes(filter);
     }
   }
 };
@@ -76,6 +115,11 @@ export default {
   transition: background-color 0.3s;
   font-size: 16px;
   font-weight: bold;
+}
+
+.filter-button.active {
+  background-color: #61bca8ff; /* Highlight active filters */
+  color: white;
 }
 
 .filter-button:hover {

@@ -37,7 +37,16 @@
       />
       <FilterComponent
         :selectedCampaignIds="selectedCampaignIds"
+        :activeFilters="activeFilters"
         @campaignIdsEmitted="logCampaignIds"
+        @toggleCreativesFilter="toggleCreativesFilter"
+        @toggleBudgetFilter="toggleBudgetFilter"
+        @toggleAdTypeFilter="toggleAdTypeFilter"
+        @toggleAudienceFilter="toggleAudienceFilter"
+        @toggleNameStatusFilter="toggleNameStatusFilter"
+        @toggleObjLocLangFilter="toggleObjLocLangFilter"
+        @clearAllFilters="clearAllFilters"
+        :updateActiveFilters="updateActiveFilters"
       />
       <HistoryTableComponent
         :differences="filteredDifferences"
@@ -90,6 +99,13 @@ export default {
     const selectedMetric1 = ref('clicks');
     const selectedMetric2 = ref('costInLocalCurrency');
     const campaignGroups = ref([]);
+    const showCreativesOnly = ref(false); // State to track if creatives filter is active
+    const showBudgetOnly = ref(false); // State to track if budget filter is active
+    const showAdTypeOnly = ref(false); // State to track if ad type filter is active
+    const showAudienceOnly = ref(false); // State to track if audience filter is active
+    const showNameStatusOnly = ref(false); // State to track if name/status filter is active
+    const showObjLocLangOnly = ref(false); // State to track if Obj/Loc/Lang filter is active
+    const activeFilters = ref(['all']); // State to track active filters
 
     watch([selectedStartDate, selectedEndDate, selectedMetric1, selectedMetric2], () => {
       dateRange.value = { start: selectedStartDate.value, end: selectedEndDate.value };
@@ -163,7 +179,24 @@ export default {
         const diffDate = new Date(diff.date);
         const isWithinDateRange = diffDate >= new Date(dateRange.value.start) && diffDate <= new Date(dateRange.value.end);
         const isSelectedCampaign = selectedCampaignIds.value.length === 0 || selectedCampaignIds.value.includes(diff.campaignId);
-        return isWithinDateRange && isSelectedCampaign;
+        const isCreativeChange = showCreativesOnly.value && diff.changes && diff.changes.creatives;
+        const isBudgetChange = showBudgetOnly.value && diff.changes && (diff.changes.dailyBudget || diff.changes.unitCost);
+        const isAdTypeChange = showAdTypeOnly.value && diff.changes && diff.changes.type;
+        const isAudienceChange = showAudienceOnly.value && diff.changes && diff.changes.targetingCriteria;
+        const isNameStatusChange = showNameStatusOnly.value && diff.changes && (diff.changes.name || diff.changes.status);
+        const isObjLocLangChange = showObjLocLangOnly.value && diff.changes && (diff.changes.local || diff.changes.objectiveType || diff.changes.locale);
+        const isAnyChange = isCreativeChange || isBudgetChange || isAdTypeChange || isAudienceChange || isNameStatusChange || isObjLocLangChange;
+        return isWithinDateRange && isSelectedCampaign && (activeFilters.value.includes('all') || activeFilters.value.length === 1 || isAnyChange);
+      }).map(diff => {
+        if (diff.changes && diff.changes.creatives) {
+          diff.changes.creatives = diff.changes.creatives.map(creative => {
+            return {
+              ...creative,
+              description: creative.added ? `Added creative: ${creative.name}` : `Removed creative: ${creative.name}`
+            };
+          });
+        }
+        return diff;
       });
     });
 
@@ -214,6 +247,61 @@ export default {
       selectedCampaignIds.value = ids;
     };
 
+    const toggleCreativesFilter = () => {
+      showCreativesOnly.value = !showCreativesOnly.value;
+      updateActiveFilters('creatives', showCreativesOnly.value);
+    };
+
+    const toggleBudgetFilter = () => {
+      showBudgetOnly.value = !showBudgetOnly.value;
+      updateActiveFilters('budget', showBudgetOnly.value);
+    };
+
+    const toggleAdTypeFilter = () => {
+      showAdTypeOnly.value = !showAdTypeOnly.value;
+      updateActiveFilters('adType', showAdTypeOnly.value);
+    };
+
+    const toggleAudienceFilter = () => {
+      showAudienceOnly.value = !showAudienceOnly.value;
+      updateActiveFilters('audience', showAudienceOnly.value);
+    };
+
+    const toggleNameStatusFilter = () => {
+      showNameStatusOnly.value = !showNameStatusOnly.value;
+      updateActiveFilters('nameStatus', showNameStatusOnly.value);
+    };
+
+    const toggleObjLocLangFilter = () => {
+      showObjLocLangOnly.value = !showObjLocLangOnly.value;
+      updateActiveFilters('objLocLang', showObjLocLangOnly.value);
+    };
+
+    const clearAllFilters = () => {
+      showCreativesOnly.value = false;
+      showBudgetOnly.value = false;
+      showAdTypeOnly.value = false;
+      showAudienceOnly.value = false;
+      showNameStatusOnly.value = false;
+      showObjLocLangOnly.value = false;
+      selectedCampaignIds.value = [];
+      activeFilters.value = ['all'];
+    };
+
+    const updateActiveFilters = (filter, isActive) => {
+      if (isActive) {
+        activeFilters.value = activeFilters.value.filter(f => f !== 'all');
+        if (!activeFilters.value.includes(filter)) {
+          activeFilters.value.push(filter);
+        }
+      } else {
+        activeFilters.value = activeFilters.value.filter(f => f !== filter);
+        if (activeFilters.value.length === 0) {
+          activeFilters.value = ['all'];
+        }
+      }
+    };
+
     return {
       selectedStartDate,
       selectedEndDate,
@@ -230,7 +318,16 @@ export default {
       selectedMetric2,
       campaignGroups,
       logCampaignIds,
-      selectedCampaignIds
+      selectedCampaignIds,
+      toggleCreativesFilter, // Return the toggleCreativesFilter method
+      toggleBudgetFilter, // Return the toggleBudgetFilter method
+      toggleAdTypeFilter, // Return the toggleAdTypeFilter method
+      toggleAudienceFilter, // Return the toggleAudienceFilter method
+      toggleNameStatusFilter, // Return the toggleNameStatusFilter method
+      toggleObjLocLangFilter, // Return the toggleObjLocLangFilter method
+      clearAllFilters, // Return the clearAllFilters method
+      activeFilters, // Return the activeFilters state
+      updateActiveFilters // Return the updateActiveFilters method
     };
   }
 }
