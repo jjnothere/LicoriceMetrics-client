@@ -1,5 +1,8 @@
 <template>
-  <table v-if="filteredDifferences.length > 0">
+  <div class="export-button-container">
+    <button class="export-button" @click="exportToCSV">Export to CSV</button>
+  </div>
+  <table v-if="paginatedDifferences.length > 0">
     <thead>
       <tr>
         <th>Campaign Name</th>
@@ -9,7 +12,7 @@
       </tr>
     </thead>
     <tbody>
-      <tr v-for="(difference) in filteredDifferences" :key="difference._id" :id="`changeRow-${difference._id}`">
+      <tr v-for="(difference) in paginatedDifferences" :key="difference._id" :id="`changeRow-${difference._id}`">
         <td class="campaign-name">{{ difference.campaign }}</td>
         <td>{{ difference.date }}</td>
         <td>
@@ -143,6 +146,11 @@
   <div v-else>
     No changes found for the selected filters.
   </div>
+  <div class="pagination" v-if="filteredDifferences.length > itemsPerPage">
+    <button @click="prevPage" :disabled="currentPage === 1">Previous</button>
+    <span>Page {{ currentPage }} of {{ totalPages }}</span>
+    <button @click="nextPage" :disabled="currentPage === totalPages">Next</button>
+  </div>
 </template>
 
 <script>
@@ -150,6 +158,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import ObjectID from 'bson-objectid';
 import api from '../api'; // Corrected path
 import { colorMapping, keyMapping as keyMappingConst } from '../constants/constants'; // Corrected path
+import * as XLSX from 'xlsx';
 
 export default {
   name: 'HistoryTableComponent',
@@ -454,6 +463,56 @@ export default {
       return string.charAt(0).toUpperCase() + string.slice(1);
     };
 
+    const formatChangesForCSV = (changes) => {
+      return Object.entries(changes).map(([key, value]) => {
+        const formattedChanges = getFormattedChanges(value, {});
+        return formattedChanges.map(change => `${change.key}: ${Array.isArray(change.value) ? change.value.join(', ') : change.value}`).join('; ');
+      }).join('; ');
+    };
+
+    const exportToCSV = () => {
+      const data = filteredDifferences.value.map(diff => {
+        const changes = formatChangesForCSV(diff.changes);
+
+        return {
+          Campaign: diff.campaign,
+          Date: diff.date,
+          Changes: changes,
+          Notes: diff.notes ? diff.notes.map(note => note.note).join('; ') : ''
+        };
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Changes');
+      XLSX.writeFile(workbook, 'changes.csv');
+    };
+
+    const itemsPerPage = 20;
+    const currentPage = ref(1);
+
+    const paginatedDifferences = computed(() => {
+      const start = (currentPage.value - 1) * itemsPerPage;
+      const end = start + itemsPerPage;
+      return filteredDifferences.value.slice(start, end);
+    });
+
+    const totalPages = computed(() => {
+      return Math.ceil(filteredDifferences.value.length / itemsPerPage);
+    });
+
+    const nextPage = () => {
+      if (currentPage.value < totalPages.value) {
+        currentPage.value++;
+      }
+    };
+
+    const prevPage = () => {
+      if (currentPage.value > 1) {
+        currentPage.value--;
+      }
+    };
+
     onMounted(() => {
       // Ensure chart and table load on page load
       if (props.selectedAdAccountId) {
@@ -483,7 +542,14 @@ export default {
       formatTimestamp,
       fetchAllChanges,
       keyMapping, // Add this line to return keyMapping
-      toggleNotes // Add this line to return toggleNotes
+      toggleNotes, // Add this line to return toggleNotes
+      exportToCSV, // Add this line to return exportToCSV
+      paginatedDifferences,
+      currentPage,
+      totalPages,
+      nextPage,
+      prevPage,
+      itemsPerPage
     };
   }
 };
@@ -686,5 +752,51 @@ td {
 
 .list-item {
   margin-bottom: 5px;
+}
+
+.export-button-container {
+  text-align: right;
+  margin-bottom: 10px;
+}
+
+.export-button {
+  padding: 10px 20px;
+  background-color: #1C1B21;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.export-button:hover {
+  background-color: #333;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.pagination button {
+  padding: 5px 10px;
+  margin: 0 5px;
+  background-color: #1C1B21;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.pagination button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.pagination button:hover:not(:disabled) {
+  background-color: #333;
 }
 </style>

@@ -50,8 +50,6 @@
       />
       <HistoryTableComponent
         :differences="filteredDifferences"
-        :campaignsMap="campaignsMap"
-        :selectedCampaigns="selectedCampaigns"
         :dateRange="dateRange"
         :selectedAdAccountId="selectedAdAccountId"
       />
