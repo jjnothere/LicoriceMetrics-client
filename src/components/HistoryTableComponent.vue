@@ -1,155 +1,166 @@
 <template>
-  <div class="export-button-container">
-    <button class="export-button" @click="exportToCSV">Export to CSV</button>
-  </div>
-  <table v-if="paginatedDifferences.length > 0">
-    <thead>
-      <tr>
-        <th>Campaign Name</th>
-        <th>Date</th>
-        <th>Changes</th>
-        <th>Notes</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr v-for="(difference) in paginatedDifferences" :key="difference._id" :id="`changeRow-${difference._id}`">
-        <td class="campaign-name">{{ difference.campaign }}</td>
-        <td>{{ difference.date }}</td>
-        <td>
-          <div v-for="(changeValue, changeKey) in difference.changes" :key="difference._id + '-' + changeKey" class="change-item">
-            <div class="change-header" @click="toggleChangeDetail(difference._id, changeKey)">
-              <strong :style="{ color: getColorForChange(changeKey) }">
-                {{ keyMapping[changeKey] || changeKey }}
-              </strong>
-              <i :class="difference.expandedChanges?.[changeKey] ? 'fas fa-chevron-down' : 'fas fa-chevron-up'" class="chevron-icon"></i>
-            </div>
-            <div v-if="difference.expandedChanges?.[changeKey]" class="change-details">
-              <div v-for="(entry) in getFormattedChanges(changeValue, difference.urnInfoMap)" :key="difference._id + '-' + changeKey + '-' + entry.key">
-                <span class="nested-key">{{ entry.key }}:</span>
-                <br />
-                <span class="nested-value">
-                  <!-- If runSchedule and value is a string, format as a date -->
-                  <template v-if="changeKey === 'runSchedule'">
-                    <template v-if="Array.isArray(entry.value)">
-                      <div v-for="(item, idx) in entry.value" :key="idx">
-                        {{ formatRunSchedule(item) }}
-                      </div>
+  <div>
+    <div class="export-button-container">
+      <button class="export-button" @click="exportToCSV">Export to CSV</button>
+    </div>
+    <table v-if="filteredAndSearchedDifferences.length > 0">
+      <thead>
+        <tr>
+          <th>Campaign Name</th>
+          <th>Date</th>
+          <th>Changes</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="(difference) in paginatedDifferences" :key="difference._id" :id="`changeRow-${difference._id}`">
+          <td class="campaign-name">{{ difference.campaign }}</td>
+          <td>{{ difference.date }}</td>
+          <td>
+            <div v-for="(changeValue, changeKey) in difference.changes" :key="difference._id + '-' + changeKey" class="change-item">
+              <div class="change-header" @click="toggleChangeDetail(difference._id, changeKey)">
+                <strong :style="{ color: getColorForChange(changeKey) }">
+                  {{ keyMapping[changeKey] || changeKey }}
+                </strong>
+                <i :class="difference.expandedChanges?.[changeKey] ? 'fas fa-chevron-down' : 'fas fa-chevron-up'" class="chevron-icon"></i>
+              </div>
+              <div v-if="difference.expandedChanges?.[changeKey]" class="change-details">
+                <div v-for="(entry) in getFormattedChanges(changeValue, difference.urnInfoMap)" :key="difference._id + '-' + changeKey + '-' + entry.key">
+                  <span class="nested-key">{{ entry.key }}:</span>
+                  <br />
+                  <span class="nested-value">
+                    <!-- If runSchedule and value is a string, format as a date -->
+                    <template v-if="changeKey === 'runSchedule'">
+                      <template v-if="Array.isArray(entry.value)">
+                        <div v-for="(item, idx) in entry.value" :key="idx">
+                          {{ formatRunSchedule(item) }}
+                        </div>
+                      </template>
+                      <template v-else>
+                        {{ formatRunSchedule(entry.value) }}
+                      </template>
                     </template>
+                    <!-- For non-runSchedule keys -->
                     <template v-else>
-                      {{ formatRunSchedule(entry.value) }}
+                      <template v-if="Array.isArray(entry.value)">
+                        <!-- Print each array item on its own line -->
+                        <ul class="list-container">
+                          <li v-for="(item, idx) in entry.value" :key="idx" class="list-item">
+                            {{ item }}
+                          </li>
+                        </ul>
+                      </template>
+                      <template v-else>
+                        {{ entry.value }}
+                      </template>
                     </template>
-                  </template>
-                  <!-- For non-runSchedule keys -->
-                  <template v-else>
-                    <template v-if="Array.isArray(entry.value)">
-                      <!-- Print each array item on its own line -->
-                      <ul class="list-container">
-                        <li v-for="(item, idx) in entry.value" :key="idx" class="list-item">
-                          {{ item }}
-                        </li>
-                      </ul>
-                    </template>
-                    <template v-else>
-                      {{ entry.value }}
-                    </template>
-                  </template>
-                </span>
-              </div>
-            </div>
-          </div>
-        </td>
-        <!-- Notes Column in Table -->
-        <td class="campaign-notes">
-          <!-- Add Note Section -->
-          <div v-if="difference.addingNote" class="note-input">
-            <input v-model="difference.newNote" placeholder="Add a new note" @keyup.enter="saveNewNotePrompt(difference._id)" @keyup.esc="cancelAddNotePrompt(difference._id)" />
-            <button class="icon-button" @click="saveNewNotePrompt(difference._id)">
-              <i class="fas fa-save"></i>
-            </button>
-            <button class="icon-button" @click="cancelAddNotePrompt(difference._id)">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-          <button v-else class="icon-button" @click="enableAddNotePrompt(difference._id)">
-            <i class="fas fa-plus"></i> Add Note
-          </button>
-          <!-- Toggle button to expand/collapse notes -->
-          <div v-if="difference.notes && difference.notes.length > 1">
-            <button class="icon-button toggle-notes" @click="toggleNotes(difference._id)">
-              <i :class="difference.showAllNotes ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
-              {{ difference.showAllNotes ? 'Show Less' : 'Show All Notes' }}
-            </button>
-          </div>
-          <!-- Display Notes -->
-          <div v-if="difference.showAllNotes">
-            <div v-for="note in difference.notes.slice().reverse()" :key="difference._id + '-' + note._id" class="note">
-              <small class="note-timestamp">{{ formatTimestamp(note.timestamp) }}</small>
-              <!-- Edit Note Input -->
-              <div v-if="note.isEditing" class="note-input">
-                <input v-model="note.newNote" @keyup.enter="saveNotePrompt(difference._id, note._id)" @keyup.esc="cancelEditMode(difference._id, note._id)" />
-                <button class="icon-button" @click="saveNotePrompt(difference._id, note._id)">
-                  <i class="fas fa-save"></i>
-                </button>
-                <button class="icon-button" @click="cancelEditMode(difference._id, note._id)">
-                  <i class="fas fa-times"></i>
-                </button>
-              </div>
-              <!-- Display Note Text and Action Buttons -->
-              <div v-else>
-                <span>{{ note.note }}</span>
-                <div class="icon-buttons">
-                  <button class="icon-button" @click="enableEditMode(difference._id, note._id)">
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button class="icon-button" @click="deleteNotePrompt(difference._id, note._id)">
-                    <i class="fas fa-trash"></i>
-                  </button>
-                </div>
-              </div>
-              <div class="note-separator"></div>
-            </div>
-          </div>
-          <div v-else>
-            <!-- Show only the newest note with edit/delete buttons -->
-            <div class="note" v-if="difference.notes && difference.notes.length > 0">
-              <small class="note-timestamp">
-                {{ formatTimestamp(difference.notes[difference.notes.length - 1].timestamp) }}
-              </small>
-              <!-- Edit Note Input -->
-              <div v-if="difference.notes[difference.notes.length - 1].isEditing" class="note-input">
-                <input v-model="difference.notes[difference.notes.length - 1].newNote" @keyup.enter="saveNotePrompt(difference._id, difference.notes[difference.notes.length - 1]._id)" @keyup.esc="cancelEditMode(difference._id, difference.notes[difference.notes.length - 1]._id)" />
-                <button class="icon-button" @click="saveNotePrompt(difference._id, difference.notes[difference.notes.length - 1]._id)">
-                  <i class="fas fa-save"></i>
-                </button>
-                <button class="icon-button" @click="cancelEditMode(difference._id, difference.notes[difference.notes.length - 1]._id)">
-                  <i class="fas fa-times"></i>
-                </button>
-              </div>
-              <!-- Display Note Text and Action Buttons -->
-              <div v-else>
-                <span>{{ difference.notes[difference.notes.length - 1].note }}</span>
-                <div class="icon-buttons">
-                  <button class="icon-button" @click="enableEditMode(difference._id, difference.notes[difference.notes.length - 1]._id)">
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button class="icon-button" @click="deleteNotePrompt(difference._id, difference.notes[difference.notes.length - 1]._id)">
-                    <i class="fas fa-trash"></i>
-                  </button>
+                  </span>
                 </div>
               </div>
             </div>
-          </div>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-  <div v-else>
-    No changes found for the selected filters.
-  </div>
-  <div class="pagination" v-if="filteredDifferences.length > itemsPerPage">
-    <button @click="prevPage" :disabled="currentPage === 1">Previous</button>
-    <span>Page {{ currentPage }} of {{ totalPages }}</span>
-    <button @click="nextPage" :disabled="currentPage === totalPages">Next</button>
+          </td>
+          <!-- Notes Column in Table -->
+          <td class="campaign-notes">
+            <!-- Add Note Section -->
+            <div v-if="difference.addingNote" class="note-input">
+              <input v-model="difference.newNote" placeholder="Add a new note" @keyup.enter="saveNewNotePrompt(difference._id)" @keyup.esc="cancelAddNotePrompt(difference._id)" />
+              <button class="icon-button" @click="saveNewNotePrompt(difference._id)">
+                <i class="fas fa-save"></i>
+              </button>
+              <button class="icon-button" @click="cancelAddNotePrompt(difference._id)">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+            <button v-else class="icon-button" @click="enableAddNotePrompt(difference._id)">
+              <i class="fas fa-plus"></i> Add Note
+            </button>
+            <!-- Toggle button to expand/collapse notes -->
+            <div v-if="difference.notes && difference.notes.length > 1">
+              <button class="icon-button toggle-notes" @click="toggleNotes(difference._id)">
+                <i :class="difference.showAllNotes ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+                {{ difference.showAllNotes ? 'Show Less' : 'Show All Notes' }}
+              </button>
+            </div>
+            <!-- Display Notes -->
+            <div v-if="difference.showAllNotes">
+              <div v-for="note in difference.notes.slice().reverse()" :key="difference._id + '-' + note._id" class="note">
+                <small class="note-timestamp">{{ formatTimestamp(note.timestamp) }}</small>
+                <!-- Edit Note Input -->
+                <div v-if="note.isEditing" class="note-input">
+                  <input v-model="note.newNote" @keyup.enter="saveNotePrompt(difference._id, note._id)" @keyup.esc="cancelEditMode(difference._id, note._id)" />
+                  <button class="icon-button" @click="saveNotePrompt(difference._id, note._id)">
+                    <i class="fas fa-save"></i>
+                  </button>
+                  <button class="icon-button" @click="cancelEditMode(difference._id, note._id)">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+                <!-- Display Note Text and Action Buttons -->
+                <div v-else>
+                  <span>{{ note.note }}</span>
+                  <div class="icon-buttons">
+                    <button class="icon-button" @click="enableEditMode(difference._id, note._id)">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="icon-button" @click="deleteNotePrompt(difference._id, note._id)">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="note-separator"></div>
+              </div>
+            </div>
+            <div v-else>
+              <!-- Show only the newest note with edit/delete buttons -->
+              <div class="note" v-if="difference.notes && difference.notes.length > 0">
+                <small class="note-timestamp">
+                  {{ formatTimestamp(difference.notes[difference.notes.length - 1].timestamp) }}
+                </small>
+                <!-- Edit Note Input -->
+                <div v-if="difference.notes[difference.notes.length - 1].isEditing" class="note-input">
+                  <input v-model="difference.notes[difference.notes.length - 1].newNote" @keyup.enter="saveNotePrompt(difference._id, difference.notes[difference.notes.length - 1]._id)" @keyup.esc="cancelEditMode(difference._id, difference.notes[difference.notes.length - 1]._id)" />
+                  <button class="icon-button" @click="saveNotePrompt(difference._id, difference.notes[difference.notes.length - 1]._id)">
+                    <i class="fas fa-save"></i>
+                  </button>
+                  <button class="icon-button" @click="cancelEditMode(difference._id, difference.notes[difference.notes.length - 1]._id)">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+                <!-- Display Note Text and Action Buttons -->
+                <div v-else>
+                  <span>{{ difference.notes[difference.notes.length - 1].note }}</span>
+                  <div class="icon-buttons">
+                    <button class="icon-button" @click="enableEditMode(difference._id, difference.notes[difference.notes.length - 1]._id)">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="icon-button" @click="deleteNotePrompt(difference._id, difference.notes[difference.notes.length - 1]._id)">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div v-else>
+      No changes found for the selected filters.
+    </div>
+    <div class="pagination-controls">
+      <label for="itemsPerPageSelect">Items per page:</label>
+      <select id="itemsPerPageSelect" v-model="itemsPerPage" @change="updatePagination">
+        <option value="20">20</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
+        <option :value="filteredDifferences.length">All</option>
+      </select>
+    </div>
+    <div class="pagination" v-if="filteredDifferences.length > itemsPerPage">
+      <button @click="prevPage" :disabled="currentPage === 1">Previous</button>
+      <span>Page {{ currentPage }} of {{ totalPages }}</span>
+      <button @click="nextPage" :disabled="currentPage === totalPages">Next</button>
+    </div>
   </div>
 </template>
 
@@ -165,7 +176,9 @@ export default {
   props: {
     differences: Array,
     dateRange: Object,
-    selectedAdAccountId: String
+    selectedAdAccountId: String,
+    activeFilters: Array, // Receive active filters from HistoryView
+    searchText: String // Receive search text from HistoryView
   },
   setup(props) {
     const differences = ref([]);
@@ -183,17 +196,49 @@ export default {
     const filteredDifferences = computed(() => {
       if (!props.dateRange || !props.dateRange.start || !props.dateRange.end) {
         console.error("Date range is not properly defined", props.dateRange);
-        return differences.value;
+        return props.differences;
       }
       
       
-      const filtered = differences.value.filter(diff => {
+      const filtered = props.differences.filter(diff => {
         const diffDate = new Date(diff.date);
         const isWithinDateRange = diffDate >= new Date(props.dateRange.start).setHours(0, 0, 0, 0) && diffDate <= new Date(props.dateRange.end).setHours(23, 59, 59, 999);
         return isWithinDateRange;
       });
 
       return filtered;
+    });
+
+    const filteredAndSearchedDifferences = computed(() => {
+      if (!props.searchText.trim()) {
+        return filteredDifferences.value;
+      }
+      return filteredDifferences.value.filter((diff) => {
+        const searchTextLower = props.searchText.toLowerCase();
+
+        // Check campaign name
+        const matchesCampaign = diff.campaign.toLowerCase().includes(searchTextLower);
+
+        // Check notes
+        const matchesNotes = diff.notes.some((note) =>
+          note.note.toLowerCase().includes(searchTextLower)
+        );
+
+        // Check date
+        const matchesDate = diff.date.toLowerCase().includes(searchTextLower);
+
+        // Check changes
+        const matchesChanges = Object.entries(diff.changes).some(([key, value]) => {
+          const keyMatches = key.toLowerCase().includes(searchTextLower);
+          const valueMatches =
+            Array.isArray(value)
+              ? value.some((item) => item.toString().toLowerCase().includes(searchTextLower))
+              : value.toString().toLowerCase().includes(searchTextLower);
+          return keyMatches || valueMatches;
+        });
+
+        return matchesCampaign || matchesNotes || matchesDate || matchesChanges;
+      });
     });
 
     const getColorForChange = (changeKey) => {
@@ -488,17 +533,21 @@ export default {
       XLSX.writeFile(workbook, 'changes.csv');
     };
 
-    const itemsPerPage = 20;
+    const itemsPerPage = ref(20); // Default to 20 items per page
     const currentPage = ref(1);
 
+    const updatePagination = () => {
+      currentPage.value = 1; // Reset to the first page when itemsPerPage changes
+    };
+
     const paginatedDifferences = computed(() => {
-      const start = (currentPage.value - 1) * itemsPerPage;
-      const end = start + itemsPerPage;
-      return filteredDifferences.value.slice(start, end);
+      const start = (currentPage.value - 1) * itemsPerPage.value;
+      const end = start + itemsPerPage.value;
+      return filteredAndSearchedDifferences.value.slice(start, end);
     });
 
     const totalPages = computed(() => {
-      return Math.ceil(filteredDifferences.value.length / itemsPerPage);
+      return Math.ceil(filteredDifferences.value.length / itemsPerPage.value);
     });
 
     const nextPage = () => {
@@ -528,6 +577,7 @@ export default {
 
     return {
       filteredDifferences,
+      filteredAndSearchedDifferences,
       getColorForChange,
       toggleChangeDetail,
       getFormattedChanges,
@@ -549,7 +599,8 @@ export default {
       totalPages,
       nextPage,
       prevPage,
-      itemsPerPage
+      itemsPerPage,
+      updatePagination
     };
   }
 };
@@ -760,7 +811,7 @@ td {
 }
 
 .export-button {
-  padding: 10px 20px;
+  padding: 5px 10px; /* Adjust padding to match FilterComponent */
   background-color: #1C1B21;
   color: white;
   border: none;
@@ -771,6 +822,23 @@ td {
 
 .export-button:hover {
   background-color: #333;
+}
+
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.pagination-controls label {
+  margin-right: 10px;
+}
+
+.pagination-controls select {
+  padding: 5px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
 }
 
 .pagination {
@@ -798,5 +866,12 @@ td {
 
 .pagination button:hover:not(:disabled) {
   background-color: #333;
+}
+
+.filter-and-export-container {
+  display: flex;
+  justify-content: space-between; /* Align FilterComponent and export button */
+  align-items: center;
+  margin-bottom: 10px;
 }
 </style>

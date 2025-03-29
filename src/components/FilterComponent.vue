@@ -1,13 +1,22 @@
 <template>
   <div class="filter-container">
-    <button class="filter-button" :class="{ active: isActive('all') }" @click="clearAll">All Changes</button>
-    <button class="filter-button" :class="{ active: isActive('budget') }" @click="toggleBudget">Budget/Bids</button>
-    <button class="filter-button" :class="{ active: isActive('audience') }" @click="toggleAudience">Audience</button>
-    <button class="filter-button" :class="{ active: isActive('objLocLang') }" @click="toggleObjLocLang">Obj/Loc/Lang</button>
-    <button class="filter-button" :class="{ active: isActive('adType') }" @click="toggleAdType">Ad Type</button>
-    <button class="filter-button" :class="{ active: isActive('nameStatus') }" @click="toggleNameStatus">Status/Name</button>
-    <button class="filter-button" :class="{ active: isActive('creatives') }" @click="toggleCreatives">Creatives</button>
-    <button class="filter-button" :class="{ active: isActive('select') }" @click="openModal">Select</button>
+    <div class="filter-buttons">
+      <button class="filter-button" :class="{ active: isActive('all') }" @click="clearAll">All Changes</button>
+      <button class="filter-button" :class="{ active: isActive('budget') }" @click="toggleBudget">Budget/Bids</button>
+      <button class="filter-button" :class="{ active: isActive('audience') }" @click="toggleAudience">Audience</button>
+      <button class="filter-button" :class="{ active: isActive('objLocLang') }" @click="toggleObjLocLang">Obj/Loc/Lang</button>
+      <button class="filter-button" :class="{ active: isActive('adType') }" @click="toggleAdType">Ad Type</button>
+      <button class="filter-button" :class="{ active: isActive('nameStatus') }" @click="toggleNameStatus">Status/Name</button>
+      <button class="filter-button" :class="{ active: isActive('creatives') }" @click="toggleCreatives">Creatives</button>
+      <button class="filter-button" :class="{ active: isActive('select') }" @click="openModal">Select</button>
+    </div>
+    <input
+      type="text"
+      class="search-input"
+      v-model="searchText"
+      placeholder="Search..."
+      @input="emitSearchText"
+    />
     <ModalComponent v-if="showModal" @close="closeModal" :campaignGroups="campaignGroups" :selectedCampaigns="selectedCampaigns" @update:selectedCampaigns="updateSelectedCampaigns" @campaignIdsEmitted="emitCampaignIds" />
   </div>
 </template>
@@ -39,7 +48,8 @@ export default {
     return {
       showModal: false,
       campaignGroups: [],
-      selectedCampaigns: [] // Store selected campaigns
+      selectedCampaigns: [], // Store selected campaigns
+      searchText: '' // Store the search text
     };
   },
   methods: {
@@ -92,7 +102,10 @@ export default {
       this.$emit('campaignIdsEmitted', this.selectedCampaigns);
     },
     isActive(filter) {
-      return this.activeFilters.includes(filter);
+      return this.activeFilters?.includes(filter); // Safely check if activeFilters includes the filter
+    },
+    emitSearchText() {
+      this.$emit('searchTextUpdated', this.searchText);
     }
   }
 };
@@ -101,12 +114,18 @@ export default {
 <style scoped>
 .filter-container {
   display: flex;
-  justify-content: space-around;
-  margin: 20px 0;
+  justify-content: space-between; /* Align buttons to the left and search input to the right */
+  align-items: center;
+  gap: 10px; /* Add spacing between buttons and search input */
+}
+
+.filter-buttons {
+  display: flex;
+  flex-wrap: nowrap; /* Prevent buttons from wrapping to a new row */
 }
 
 .filter-button {
-  padding: 10px 20px;
+  padding: 5px 10px;
   background-color: #F9F9F8; /* Match table header color */
   color: #1C1B21;
   border: 2px solid #1C1B21;
@@ -115,6 +134,7 @@ export default {
   transition: background-color 0.3s;
   font-size: 16px;
   font-weight: bold;
+  margin-right: 10px;
 }
 
 .filter-button.active {
@@ -124,5 +144,15 @@ export default {
 
 .filter-button:hover {
   background-color: #E0E0E0; /* Slightly darker shade for hover effect */
+}
+
+.search-input {
+  flex-shrink: 0; /* Prevent the search input from shrinking */
+  padding: 5px 10px;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  font-size: 14px;
+  width: 200px;
+  margin-left: auto; /* Push the search input to the right */
 }
 </style>

@@ -47,11 +47,14 @@
         @toggleObjLocLangFilter="toggleObjLocLangFilter"
         @clearAllFilters="clearAllFilters"
         :updateActiveFilters="updateActiveFilters"
+        @searchTextUpdated="updateSearchText"
       />
       <HistoryTableComponent
         :differences="filteredDifferences"
         :dateRange="dateRange"
         :selectedAdAccountId="selectedAdAccountId"
+        :activeFilters="activeFilters"
+        :searchText="searchText"
       />
     </div>
   </div>
@@ -104,6 +107,7 @@ export default {
     const showNameStatusOnly = ref(false); // State to track if name/status filter is active
     const showObjLocLangOnly = ref(false); // State to track if Obj/Loc/Lang filter is active
     const activeFilters = ref(['all']); // State to track active filters
+    const searchText = ref(''); // State to track search text
 
     watch([selectedStartDate, selectedEndDate, selectedMetric1, selectedMetric2], () => {
       dateRange.value = { start: selectedStartDate.value, end: selectedEndDate.value };
@@ -324,6 +328,10 @@ export default {
       }
     };
 
+    const updateSearchText = (text) => {
+      searchText.value = text;
+    };
+
     return {
       selectedStartDate,
       selectedEndDate,
@@ -349,7 +357,9 @@ export default {
       toggleObjLocLangFilter, // Return the toggleObjLocLangFilter method
       clearAllFilters, // Return the clearAllFilters method
       activeFilters, // Return the activeFilters state
-      updateActiveFilters // Return the updateActiveFilters method
+      updateActiveFilters, // Return the updateActiveFilters method
+      searchText, // Return the searchText state
+      updateSearchText // Return the updateSearchText method
     };
   }
 }
