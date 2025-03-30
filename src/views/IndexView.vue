@@ -23,7 +23,10 @@ const { checkAuthStatus, isLoggedIn } = useAuth();
 
 const loginWithLinkedIn = () => {
   try {
-    const linkedInUrl = import.meta.env.VITE_LINKEDIN_AUTH_URL;
+    const linkedInUrl =
+      import.meta.env.MODE === 'development'
+        ? import.meta.env.VITE_LINKEDIN_AUTH_URL_DEV
+        : import.meta.env.VITE_LINKEDIN_AUTH_URL;
     console.log("🐒 ~ linkedInUrl:", linkedInUrl);
     window.location.href = linkedInUrl;
   } catch (error) {
@@ -37,7 +40,10 @@ onMounted(async () => {
     await checkAuthStatus(); // Verifies authentication based on cookies
 
     if (isLoggedIn.value) {
+      console.log("User is logged in, redirecting to /history...");
       router.push('/history'); // Redirect if authenticated
+    } else {
+      console.log("User is not logged in, staying on login page.");
     }
   } catch (error) {
     console.error("Error during authentication check:", error);
