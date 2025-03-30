@@ -22,16 +22,26 @@ const router = useRouter();
 const { checkAuthStatus, isLoggedIn } = useAuth();
 
 const loginWithLinkedIn = () => {
-  const linkedInUrl = import.meta.env.VITE_LINKEDIN_AUTH_URL;
-  console.log("🐒 ~ linkedInUrl:", linkedInUrl);
-  window.location.href = linkedInUrl;
+  try {
+    const linkedInUrl = import.meta.env.VITE_LINKEDIN_AUTH_URL;
+    console.log("🐒 ~ linkedInUrl:", linkedInUrl);
+    window.location.href = linkedInUrl;
+  } catch (error) {
+    console.error("Error during LinkedIn login:", error);
+    errorMessage.value = "Failed to initiate LinkedIn login. Please try again.";
+  }
 };
 
 onMounted(async () => {
-  await checkAuthStatus(); // Verifies authentication based on cookies
+  try {
+    await checkAuthStatus(); // Verifies authentication based on cookies
 
-  if (isLoggedIn.value) {
-    router.push('/history'); // Redirect if authenticated
+    if (isLoggedIn.value) {
+      router.push('/history'); // Redirect if authenticated
+    }
+  } catch (error) {
+    console.error("Error during authentication check:", error);
+    errorMessage.value = "Failed to verify authentication status.";
   }
 });
 </script>
