@@ -13,7 +13,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(difference) in paginatedDifferences" :key="difference._id" :id="`changeRow-${difference._id}`">
+        <tr v-for="(difference) in filteredAndSearchedDifferences" :key="difference._id" :id="`changeRow-${difference._id}`">
           <td class="campaign-name">{{ difference.campaign }}</td>
           <td>{{ difference.date }}</td>
           <td>
@@ -147,28 +147,14 @@
     <div v-else>
       No changes found for the selected filters.
     </div>
-    <div class="pagination-controls">
-      <label for="itemsPerPageSelect">Items per page:</label>
-      <select id="itemsPerPageSelect" v-model="itemsPerPage" @change="updatePagination">
-        <option value="20">20</option>
-        <option value="50">50</option>
-        <option value="100">100</option>
-        <option :value="filteredDifferences.length">All</option>
-      </select>
-    </div>
-    <div class="pagination" v-if="filteredDifferences.length > itemsPerPage">
-      <button @click="prevPage" :disabled="currentPage === 1">Previous</button>
-      <span>Page {{ currentPage }} of {{ totalPages }}</span>
-      <button @click="nextPage" :disabled="currentPage === totalPages">Next</button>
-    </div>
   </div>
 </template>
 
 <script>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import ObjectID from 'bson-objectid';
-import api from '../api'; // Corrected path
-import { colorMapping, keyMapping as keyMappingConst } from '../constants/constants'; // Corrected path
+import api from '../api';
+import { colorMapping, keyMapping as keyMappingConst } from '../constants/constants';
 import * as XLSX from 'xlsx';
 
 export default {
@@ -177,37 +163,115 @@ export default {
     differences: Array,
     dateRange: Object,
     selectedAdAccountId: String,
-    activeFilters: Array, // Receive active filters from HistoryView
-    searchText: String // Receive search text from HistoryView
+    activeFilters: Array,
+    searchText: String
   },
   setup(props) {
     const differences = ref([]);
-    const keyMapping = ref(keyMappingConst); // Move this line to the top
+    const keyMapping = ref(keyMappingConst);
 
-    const getTokenFromCookies = () => {
-      const cookie = document.cookie.split('; ').find(row => row.startsWith('accessToken='));
-      return cookie ? cookie.split('=')[1] : null;
+    // Ensure differences are reactive and initialize necessary properties
+    const initializeDifferences = (newDifferences) => {
+      return newDifferences.map((diff) => ({
+        ...diff,
+        expandedChanges: diff.expandedChanges || {}, // Initialize expandedChanges
+        addingNote: false, // Initialize addingNote
+        newNote: '', // Initialize newNote
+      }));
     };
-    
-    watch(() => props.differences, (newDifferences) => {
-      differences.value = newDifferences;
-    }, { immediate: true });
-    
+
+    watch(
+      () => props.differences,
+      (newDifferences) => {
+        differences.value = initializeDifferences(newDifferences);
+      },
+      { immediate: true }
+    );
+
+    const enableAddNotePrompt = (id) => {
+      const difference = differences.value.find((diff) => diff._id === id);
+      if (difference) {
+        difference.addingNote = true;
+      }
+    };
+
+    const cancelAddNotePrompt = (id) => {
+      const difference = differences.value.find((diff) => diff._id === id);
+      if (difference) {
+        difference.addingNote = false;
+        difference.newNote = '';
+      }
+    };
+
+    const saveNewNotePrompt = async (id) => {
+      const difference = differences.value.find((diff) => diff._id === id);
+      if (!difference || !difference.newNote) return;
+
+      const token = document.cookie
+        .split('; ')
+        .find((row) => row.startsWith('accessToken='))
+        ?.split('=')[1];
+
+      if (!token) {
+        console.error('No authorization token found');
+        return;
+      }
+
+      try {
+        await api.post(
+          '/api/add-note',
+          {
+            accountId: props.selectedAdAccountId,
+            campaignId: id,
+            newNote: difference.newNote
+          },
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            withCredentials: true
+          }
+        );
+
+        difference.notes.push({
+          _id: ObjectID().toHexString(),
+          note: difference.newNote,
+          timestamp: new Date().toISOString()
+        });
+
+        difference.newNote = '';
+        difference.addingNote = false;
+      } catch (error) {
+        console.error('Error adding note:', error);
+      }
+    };
+
     const filteredDifferences = computed(() => {
       if (!props.dateRange || !props.dateRange.start || !props.dateRange.end) {
         console.error("Date range is not properly defined", props.dateRange);
-        return props.differences;
+        return differences.value;
       }
-      
-      
-      const filtered = props.differences.filter(diff => {
+
+      const filtered = differences.value.filter((diff) => {
         const diffDate = new Date(diff.date);
-        const isWithinDateRange = diffDate >= new Date(props.dateRange.start).setHours(0, 0, 0, 0) && diffDate <= new Date(props.dateRange.end).setHours(23, 59, 59, 999);
+        const isWithinDateRange =
+          diffDate >= new Date(props.dateRange.start).setHours(0, 0, 0, 0) &&
+          diffDate <= new Date(props.dateRange.end).setHours(23, 59, 59, 999);
         return isWithinDateRange;
       });
 
       return filtered;
     });
+
+    const searchNestedValues = (value, searchTextLower) => {
+      if (Array.isArray(value)) {
+        return value.some((item) => searchNestedValues(item, searchTextLower));
+      } else if (typeof value === 'object' && value !== null) {
+        return Object.values(value).some((nestedValue) =>
+          searchNestedValues(nestedValue, searchTextLower)
+        );
+      } else {
+        return value.toString().toLowerCase().includes(searchTextLower);
+      }
+    };
 
     const filteredAndSearchedDifferences = computed(() => {
       if (!props.searchText.trim()) {
@@ -216,24 +280,14 @@ export default {
       return filteredDifferences.value.filter((diff) => {
         const searchTextLower = props.searchText.toLowerCase();
 
-        // Check campaign name
         const matchesCampaign = diff.campaign.toLowerCase().includes(searchTextLower);
-
-        // Check notes
         const matchesNotes = diff.notes.some((note) =>
           note.note.toLowerCase().includes(searchTextLower)
         );
-
-        // Check date
         const matchesDate = diff.date.toLowerCase().includes(searchTextLower);
-
-        // Check changes
         const matchesChanges = Object.entries(diff.changes).some(([key, value]) => {
           const keyMatches = key.toLowerCase().includes(searchTextLower);
-          const valueMatches =
-            Array.isArray(value)
-              ? value.some((item) => item.toString().toLowerCase().includes(searchTextLower))
-              : value.toString().toLowerCase().includes(searchTextLower);
+          const valueMatches = searchNestedValues(value, searchTextLower);
           return keyMatches || valueMatches;
         });
 
@@ -243,7 +297,7 @@ export default {
 
     const getColorForChange = (changeKey) => {
       const mappedKey = keyMapping.value[changeKey] || changeKey;
-      return colorMapping[mappedKey] || 'black'; // Default to black if no color is defined
+      return colorMapping[mappedKey] || 'black';
     };
 
     const toggleChangeDetail = (differenceId, changeKey) => {
@@ -257,273 +311,53 @@ export default {
     };
 
     const getFormattedChanges = (changeValue, urnInfoMap) => {
-      const formattedChanges = formatNestedChange(changeValue, '', urnInfoMap);
-      return formattedChanges.map(({ key, value }) => ({
-        key,
-        value // Do not join arrays here, leave them as arrays if they are arrays
-      }));
-    };
+      const formatNestedChange = (nestedObject, prefix = '') => {
+        const result = [];
 
-    const formatRunSchedule = (timestamp) => {
-      if (!timestamp) return 'Invalid timestamp';
-      const date = new Date(parseFloat(timestamp));
-      return date.toLocaleString(); // Converts to "MM/DD/YYYY, HH:MM:SS"
-    };
+        if (Array.isArray(nestedObject)) {
+          nestedObject.forEach((item) => {
+            const nestedResult = formatNestedChange(item, prefix);
+            result.push(...nestedResult);
+          });
+        } else if (typeof nestedObject === 'object' && nestedObject !== null) {
+          for (const key in nestedObject) {
+            const formattedKey = prefix ? `${prefix} ${key}` : key;
 
-    const enableAddNotePrompt = (id) => {
-      const difference = differences.value.find(diff => diff._id === id);
-      difference.addingNote = true;
-    };
-
-    const cancelAddNotePrompt = (differenceId) => {
-      const difference = differences.value.find(diff => diff._id === differenceId);
-      if (difference) {
-        difference.addingNote = false;
-        difference.newNote = '';
-      }
-    };
-
-    const saveNewNotePrompt = async (changeId) => {
-      const token = getTokenFromCookies();
-      if (!token) {
-        console.error('No authorization token found');
-        return;
-      }
-      const difference = differences.value.find(diff => diff._id === changeId);
-      if (!difference.newNote) return;
-
-      try {
-        await api.post('/api/add-note', {
-          accountId: props.selectedAdAccountId,
-          campaignId: difference._id,
-          newNote: difference.newNote
-        }, {
-          headers: { Authorization: `Bearer ${token}` },
-          withCredentials: true
-        });
-        difference.notes.push({
-          _id: ObjectID().toHexString(),
-          note: difference.newNote,
-          timestamp: new Date().toISOString()
-        });
-        difference.notes = [...difference.notes]; // Reassign to trigger reactivity
-        difference.newNote = '';
-        difference.addingNote = false;
-      } catch (error) {
-        console.error('Error adding note:', error);
-      }
-    };
-
-    const enableEditMode = (changeId, noteId) => {
-      const difference = differences.value.find(diff => diff._id === changeId);
-      const note = difference.notes.find(note => note._id === noteId);
-      note.isEditing = true;
-      note.newNote = note.note;
-    };
-
-    const saveNotePrompt = async (changeId, noteId) => {
-      const token = getTokenFromCookies();
-      if (!token) {
-        console.error('No authorization token found');
-        return;
-      }
-      const accountId = props.selectedAdAccountId;
-      const campaignId = changeId;
-      const difference = differences.value.find(diff => diff._id === changeId);
-      const note = difference.notes.find(note => note._id === noteId);
-      if (note.newNote === undefined || !accountId || !campaignId) return;
-
-      try {
-        await api.post('/api/edit-note', {
-          accountId,
-          campaignId,
-          noteId,
-          updatedNote: note.newNote
-        }, {
-          headers: { Authorization: `Bearer ${token}` },
-          withCredentials: true
-        });
-        note.note = note.newNote;
-        note.isEditing = false;
-        note.timestamp = new Date().toISOString();
-      } catch (error) {
-        console.error('Error updating note:', error);
-      }
-    };
-
-    const cancelEditMode = (differenceId, noteId) => {
-      const difference = differences.value.find(diff => diff._id === differenceId);
-      if (difference) {
-        const note = difference.notes.find(note => note._id === noteId);
-        if (note) {
-          note.isEditing = false;
-          note.newNote = note.note;
+            if (typeof nestedObject[key] === 'object' && nestedObject[key] !== null) {
+              const nestedResult = formatNestedChange(nestedObject[key], formattedKey);
+              result.push(...nestedResult);
+            } else {
+              result.push({ key: formattedKey, value: nestedObject[key] });
+            }
+          }
+        } else {
+          result.push({ key: prefix, value: nestedObject });
         }
-      }
-    };
 
-    const deleteNotePrompt = async (changeId, noteId) => {
-      const token = getTokenFromCookies();
-      if (!token) {
-        console.error('No authorization token found');
-        return;
-      }
-      const accountId = props.selectedAdAccountId;
-      const campaignId = changeId;
-      if (!accountId || !campaignId) return;
+        return result;
+      };
 
-      try {
-        await api.post('/api/delete-note', {
-          accountId,
-          campaignId,
-          noteId
-        }, {
-          headers: { Authorization: `Bearer ${token}` },
-          withCredentials: true
-        });
-        const difference = differences.value.find(diff => diff._id === changeId);
-        difference.notes = difference.notes.filter(note => note._id !== noteId);
-      } catch (error) {
-        console.error('Error deleting note:', error);
-      }
+      return formatNestedChange(changeValue);
     };
 
     const formatTimestamp = (timestamp) => {
       const date = new Date(timestamp);
-      return date.toLocaleString();
-    };
-
-    const fetchAllChanges = async () => {
-      try {
-        const token = getTokenFromCookies();
-        if (!token) {
-          console.error('No authorization token found');
-          return;
-        }
-        const response = await api.get('/api/get-all-changes', {
-          params: { adAccountId: props.selectedAdAccountId },
-          headers: { Authorization: `Bearer ${token}` },
-          withCredentials: true
-        });
-        differences.value = response.data.reverse().map(change => {
-          // Normalize _id to a string
-          if (change._id && typeof change._id === 'object' && change._id.$oid) {
-            change._id = change._id.$oid;
-          } else if (typeof change._id === 'string') {
-            // _id is already a string, do nothing
-          } else if (!change._id) {
-            change._id = ObjectID().toHexString();
-          }
-          if (!change.expandedChanges) {
-            change.expandedChanges = {};
-          }
-          return change;
-        });
-      } catch (error) {
-        console.error('Error fetching all changes from the database:', error);
-      }
-    };
-
-    const toggleNotes = (id) => {
-      const difference = differences.value.find(diff => diff._id === id);
-      if (difference) {
-        difference.showAllNotes = !difference.showAllNotes;
-      }
-    };
-
-    const cleanUpKey = (keyString) => {
-      return keyString
-        .replace(/urn:li:adTargetingFacet:/gi, '')      // Remove urn:li:adTargetingFacet:
-        .replace(/\bAnd\b\s*\d*/gi, '')                // Remove "And 0", "And 1", etc.
-        .replace(/\bOr\b\s*\d*/gi, '')                 // Remove "Or 0", "Or 1", etc.
-        .replace(/\s+/g, ' ')                          // Normalize excessive spaces
-        .trim();
-    };
-
-    const formatNestedChange = (nestedObject, prefix = '', urnInfoMap = {}) => {
-      const result = [];
-
-      // Handle added/removed keys if present
-      if (nestedObject && typeof nestedObject === 'object' &&
-        (Array.isArray(nestedObject.added) || Array.isArray(nestedObject.removed))) {
-
-        // Clean the prefix before using it
-        let cleanedPrefix = cleanUpKey(prefix);
-
-        if (nestedObject.added && nestedObject.added.length > 0) {
-          const addedItems = nestedObject.added.map(item => replaceUrnWithInfo(item, urnInfoMap));
-          result.push({ key: `${cleanedPrefix ? cleanedPrefix + ' ' : ''}Added`, value: addedItems });
-        }
-
-        if (nestedObject.removed && nestedObject.removed.length > 0) {
-          const removedItems = nestedObject.removed.map(item => replaceUrnWithInfo(item, urnInfoMap));
-          result.push({ key: `${cleanedPrefix ? cleanedPrefix + ' ' : ''}Removed`, value: removedItems });
-        }
-
-        return result;
-      }
-
-      if (Array.isArray(nestedObject)) {
-        nestedObject.forEach((item) => {
-          const nestedResult = formatNestedChange(item, prefix, urnInfoMap);
-          result.push(...nestedResult);
-        });
-      } else if (typeof nestedObject === 'object' && nestedObject !== null) {
-        for (const key in nestedObject) {
-          // Skip numeric keys but include their values directly in the parent structure
-          if (!isNaN(key)) {
-            const nestedResult = formatNestedChange(nestedObject[key], prefix, urnInfoMap);
-            result.push(...nestedResult);
-            continue;
-          }
-
-          let formattedKey = prefix ? `${prefix} ${capitalizeFirstLetter(key)}` : capitalizeFirstLetter(key);
-
-          if (typeof nestedObject[key] === 'object' && nestedObject[key] !== null) {
-            const nestedResult = formatNestedChange(nestedObject[key], formattedKey, urnInfoMap);
-            result.push(...nestedResult);
-          } else {
-            const value = nestedObject[key];
-            const formattedValue = replaceUrnWithInfo(value, urnInfoMap);
-
-            // Clean the key before pushing
-            formattedKey = cleanUpKey(formattedKey);
-
-            result.push({ key: formattedKey, value: formattedValue });
-          }
-        }
-      }
-
-      return result;
-    };
-
-    const replaceUrnWithInfo = (value, urnInfoMap) => {
-      if (typeof value === 'string') {
-        return urnInfoMap[value] || value; // Replace URN with mapped info or keep the original
-      }
-      return value;
-    };
-
-    const capitalizeFirstLetter = (string) => {
-      return string.charAt(0).toUpperCase() + string.slice(1);
-    };
-
-    const formatChangesForCSV = (changes) => {
-      return Object.entries(changes).map(([key, value]) => {
-        const formattedChanges = getFormattedChanges(value, {});
-        return formattedChanges.map(change => `${change.key}: ${Array.isArray(change.value) ? change.value.join(', ') : change.value}`).join('; ');
-      }).join('; ');
+      return date.toLocaleString(); // Format the timestamp as a readable string
     };
 
     const exportToCSV = () => {
-      const data = filteredDifferences.value.map(diff => {
-        const changes = formatChangesForCSV(diff.changes);
+      const data = filteredDifferences.value.map((diff) => {
+        const changes = Object.entries(diff.changes)
+          .map(([key, value]) => {
+            return `${key}: ${Array.isArray(value) ? value.join(', ') : value}`;
+          })
+          .join('; ');
 
         return {
           Campaign: diff.campaign,
           Date: diff.date,
           Changes: changes,
-          Notes: diff.notes ? diff.notes.map(note => note.note).join('; ') : ''
+          Notes: diff.notes ? diff.notes.map((note) => note.note).join('; ') : '',
         };
       });
 
@@ -533,76 +367,19 @@ export default {
       XLSX.writeFile(workbook, 'changes.csv');
     };
 
-    const itemsPerPage = ref(20); // Default to 20 items per page
-    const currentPage = ref(1);
-
-    const updatePagination = () => {
-      currentPage.value = 1; // Reset to the first page when itemsPerPage changes
-    };
-
-    const paginatedDifferences = computed(() => {
-      const start = (currentPage.value - 1) * itemsPerPage.value;
-      const end = start + itemsPerPage.value;
-      return filteredAndSearchedDifferences.value.slice(start, end);
-    });
-
-    const totalPages = computed(() => {
-      return Math.ceil(filteredDifferences.value.length / itemsPerPage.value);
-    });
-
-    const nextPage = () => {
-      if (currentPage.value < totalPages.value) {
-        currentPage.value++;
-      }
-    };
-
-    const prevPage = () => {
-      if (currentPage.value > 1) {
-        currentPage.value--;
-      }
-    };
-
-    onMounted(() => {
-      // Ensure chart and table load on page load
-      if (props.selectedAdAccountId) {
-        fetchAllChanges();
-      }
-    });
-
-    watch(() => props.selectedAdAccountId, async (newId, oldId) => {
-      if (newId !== oldId) {
-        await fetchAllChanges();
-      }
-    }, { immediate: true });
-
     return {
-      filteredDifferences,
       filteredAndSearchedDifferences,
       getColorForChange,
       toggleChangeDetail,
-      getFormattedChanges,
-      formatRunSchedule,
-      enableAddNotePrompt,
-      cancelAddNotePrompt,
-      saveNewNotePrompt,
-      enableEditMode,
-      saveNotePrompt,
-      cancelEditMode,
-      deleteNotePrompt,
+      getFormattedChanges, // Ensure getFormattedChanges is returned so it can be used in the template
+      exportToCSV,
+      keyMapping,
       formatTimestamp,
-      fetchAllChanges,
-      keyMapping, // Add this line to return keyMapping
-      toggleNotes, // Add this line to return toggleNotes
-      exportToCSV, // Add this line to return exportToCSV
-      paginatedDifferences,
-      currentPage,
-      totalPages,
-      nextPage,
-      prevPage,
-      itemsPerPage,
-      updatePagination
+      enableAddNotePrompt, // Ensure enableAddNotePrompt is returned
+      cancelAddNotePrompt, // Ensure cancelAddNotePrompt is returned
+      saveNewNotePrompt, // Ensure saveNewNotePrompt is returned
     };
-  }
+  },
 };
 </script>
 
@@ -821,50 +598,6 @@ td {
 }
 
 .export-button:hover {
-  background-color: #333;
-}
-
-.pagination-controls {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.pagination-controls label {
-  margin-right: 10px;
-}
-
-.pagination-controls select {
-  padding: 5px;
-  border-radius: 5px;
-  border: 1px solid #ccc;
-}
-
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 10px;
-}
-
-.pagination button {
-  padding: 5px 10px;
-  margin: 0 5px;
-  background-color: #1C1B21;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.pagination button:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
-
-.pagination button:hover:not(:disabled) {
   background-color: #333;
 }
 

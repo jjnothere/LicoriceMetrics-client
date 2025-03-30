@@ -64,7 +64,7 @@
 import HistoryTableComponent from '../components/HistoryTableComponent.vue';
 import LineChartComponent from '../components/LineChartComponent.vue';
 import FilterComponent from '../components/FilterComponent.vue';
-import { ref, onMounted, watch, computed } from 'vue';
+import { ref, onMounted, watch, computed, reactive } from 'vue';
 import { useStore } from 'vuex';
 import api from '../api'; // Corrected path
 import { useAuth } from '../composables/auth';
@@ -131,15 +131,14 @@ export default {
           withCredentials: true
         });
         differences.value = response.data.reverse().map(change => {
-          if (change._id && typeof change._id === 'object' && change._id.$oid) {
-            change._id = change._id.$oid;
-          } else if (!change._id) {
-            change._id = ObjectID().toHexString();
-          }
-          if (!change.expandedChanges) {
-            change.expandedChanges = {};
-          }
-          return change;
+          // Ensure all necessary properties are initialized reactively
+          return reactive({
+            ...change,
+            _id: typeof change._id === 'object' && change._id.$oid ? change._id.$oid : change._id || ObjectID().toHexString(),
+            expandedChanges: change.expandedChanges || {}, // Initialize expandedChanges
+            addingNote: false, // Initialize addingNote
+            newNote: '' // Initialize newNote
+          });
         });
       } catch (error) {
         console.error('Error fetching differences:', error);
