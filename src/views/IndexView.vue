@@ -25,7 +25,7 @@ const { checkAuthStatus, isLoggedIn } = useAuth();
 const loginWithLinkedIn = () => {
   const linkedInUrl = `${import.meta.env.VITE_API_BASE_URL}/auth/linkedin`;
   window.location.href = linkedInUrl;
-  console.log("🐒 ~ linkedInUrl:", linkedInUrl)
+  console.log("🐒 ~ aalinkedInUrl:", linkedInUrl)
 };
 
 onMounted(async () => {
