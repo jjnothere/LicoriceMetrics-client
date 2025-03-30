@@ -21,11 +21,10 @@ const errorMessage = ref('');
 const router = useRouter();
 const { checkAuthStatus, isLoggedIn } = useAuth();
 
-
 const loginWithLinkedIn = () => {
-  const linkedInUrl = `${import.meta.env.VITE_API_BASE_URL}/auth/linkedin`;
+  const linkedInUrl = import.meta.env.VITE_LINKEDIN_AUTH_URL;
+  console.log("🐒 ~ linkedInUrl:", linkedInUrl);
   window.location.href = linkedInUrl;
-  console.log("🐒 ~ aalinkedInUrl:", linkedInUrl)
 };
 
 onMounted(async () => {
