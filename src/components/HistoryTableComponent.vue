@@ -13,7 +13,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(difference) in filteredAndSearchedDifferences" :key="difference._id" :id="`changeRow-${difference._id}`">
+        <tr v-for="(difference) in filteredAndSearchedDifferences" :key="difference._id" :id="`changeRow-${formatDateForId(difference.date)}`">
           <td class="campaign-name">{{ difference.campaign }}</td>
           <td>{{ difference.date }}</td>
           <td>
@@ -345,6 +345,11 @@ export default {
       return date.toLocaleString(); // Format the timestamp as a readable string
     };
 
+    const formatDateForId = (date) => {
+      const d = new Date(date);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+
     const exportToCSV = () => {
       const data = filteredDifferences.value.map((diff) => {
         const changes = Object.entries(diff.changes)
@@ -375,6 +380,7 @@ export default {
       exportToCSV,
       keyMapping,
       formatTimestamp,
+      formatDateForId, // Ensure this function is returned
       enableAddNotePrompt, // Ensure enableAddNotePrompt is returned
       cancelAddNotePrompt, // Ensure cancelAddNotePrompt is returned
       saveNewNotePrompt, // Ensure saveNewNotePrompt is returned

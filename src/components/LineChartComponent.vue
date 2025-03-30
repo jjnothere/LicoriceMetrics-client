@@ -42,6 +42,10 @@ export default {
     selectedCampaignIds: {
       type: Array,
       required: false
+    },
+    differences: {
+      type: Array,
+      required: true
     }
   },
   setup(props) {
@@ -69,25 +73,25 @@ export default {
       const formatKey = (item) => {
         const date = new Date(
           item.dateRange.start.year,
-          item.dateRange.start.month,
+          item.dateRange.start.month - 1, // Subtract 1 to handle zero-based month index
           item.dateRange.start.day
         );
         const y = date.getFullYear();
-        const m = date.getMonth();
+        const m = date.getMonth(); // Zero-based month
         switch (interval) {
           case 'WEEKLY':
             const dayOfWeek = date.getDay();
             const offset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
             const monday = new Date(date.getTime());
             monday.setDate(monday.getDate() - offset);
-            return `W:${monday.getMonth() + 1}/${monday.getDate()}/${monday.getFullYear()}`;
+            return `W:${monday.getMonth() + 1}/${monday.getDate()}/${monday.getFullYear()}`; // Correct month
           case 'MONTHLY':
-            return `M:${y}-${m + 1}`;
+            return `M:${y}-${m + 1}`; // Correct month
           case 'QUARTERLY':
             const quarter = Math.floor(m / 3) + 1;
             return `Q${quarter}-${y}`;
           default:
-            return `D:${y}-${m + 1}-${date.getDate()}`;
+            return `D:${y}-${m + 1}-${date.getDate()}`; // Correct month
         }
       };
 
@@ -107,22 +111,27 @@ export default {
         metric1: data.metric1,
         metric2: data.metric2
       })).sort((a, b) => {
-        const dateA = new Date(a.date.year, a.date.month - 1, a.date.day);
-        const dateB = new Date(b.date.year, b.date.month - 1, b.date.day);
+        const dateA = new Date(a.date.year, a.date.month - 1, a.date.day); // Correct month
+        const dateB = new Date(b.date.year, b.date.month - 1, b.date.day); // Correct month
         return dateA - dateB;
       });
     }
 
     const formatDateLabel = (dateString) => {
-      if (dateString.startsWith('Q')) {
-        return dateString; // Return the quarterly format as is
-      }
       const date = new Date(dateString);
-      const month = date.getMonth() + 1; // Ensure 1-based month
-      const day = date.getDate(); // No leading zero for the day
       const year = date.getFullYear();
-      return `${month}/${day}/${year}`; // Format as "M/D/YYYY"
+      const month = String(date.getMonth() + 1).padStart(2, '0'); // Ensure two-digit month
+      const day = String(date.getDate()).padStart(2, '0'); // Ensure two-digit day
+      return `${year}-${month}-${day}`; // Format as "YYYY-MM-DD"
     };
+
+    const getChangeDates = computed(() => {
+      // Format dates as YYYY-MM-DD to match table row IDs
+      return props.differences.map((diff) => {
+        const date = new Date(diff.date);
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      });
+    });
 
     const fetchChartData = async () => {
       try {
@@ -164,9 +173,11 @@ export default {
       const labels = [];
       const metric1Data = [];
       const metric2Data = [];
+      const changeDates = getChangeDates.value;
 
       aggregated.forEach(item => {
-        labels.push(item.key.startsWith('Q') ? item.key : formatDateLabel(item.key.replace(/^./, '')));
+        const formattedDate = item.key.startsWith('Q') ? item.key : formatDateLabel(item.key.replace(/^./, ''));
+        labels.push(formattedDate);
         metric1Data.push(item.metric1);
         metric2Data.push(item.metric2);
       });
@@ -181,19 +192,53 @@ export default {
               label: props.metric1,
               data: metric1Data,
               borderColor: '#4caf50',
-              fill: false
+              fill: false,
+              pointBackgroundColor: labels.map((label) =>
+                changeDates.includes(label) ? 'red' : '#4caf50'
+              ),
+              pointRadius: labels.map((label) =>
+                changeDates.includes(label) ? 6 : 3
+              )
             },
             {
               label: props.metric2,
               data: metric2Data,
               borderColor: '#f44336',
-              fill: false
+              fill: false,
+              pointBackgroundColor: labels.map((label) =>
+                changeDates.includes(label) ? 'red' : '#f44336'
+              ),
+              pointRadius: labels.map((label) =>
+                changeDates.includes(label) ? 6 : 3
+              )
             }
           ]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: (context) => {
+                  const date = context.label;
+                  if (changeDates.includes(date)) {
+                    return `${context.dataset.label}: ${context.raw} (Change)`;
+                  }
+                  return `${context.dataset.label}: ${context.raw}`;
+                }
+              }
+            }
+          },
+          onClick: (event, elements) => {
+            if (elements.length > 0) {
+              const index = elements[0].index;
+              const clickedDate = labels[index];
+              if (changeDates.includes(clickedDate)) {
+                scrollToTableRow(clickedDate);
+              }
+            }
+          },
           scales: {
             x: { type: 'category' },
             y: {
@@ -203,6 +248,17 @@ export default {
           }
         }
       });
+    };
+
+    const scrollToTableRow = (date) => {
+      const matchingRow = document.querySelector(`[id="changeRow-${date}"]`);
+      if (matchingRow) {
+        matchingRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        matchingRow.classList.remove('flash-row'); // Remove the class to restart the animation
+        void matchingRow.offsetWidth; // Trigger reflow to reapply the animation
+        matchingRow.classList.add('flash-row');
+        setTimeout(() => matchingRow.classList.remove('flash-row'), 3000); // Ensure the class is removed after the animation
+      }
     };
 
     onMounted(fetchChartData);
@@ -225,5 +281,21 @@ export default {
 canvas {
   width: 100% !important;
   height: 400px !important;
+}
+
+.flash-row {
+  animation: flash 0.5s ease-in-out 6; /* Flash 6 times (3 seconds total) */
+  background-color: yellow;
+}
+
+@keyframes flash {
+  0%, 100% {
+    background-color: yellow;
+    opacity: 1;
+  }
+  50% {
+    background-color: transparent;
+    opacity: 0.5;
+  }
 }
 </style>

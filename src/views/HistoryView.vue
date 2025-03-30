@@ -34,6 +34,7 @@
         :metric1="selectedMetric1"
         :metric2="selectedMetric2"
         :selectedCampaignIds="selectedCampaignIds"
+        :differences="filteredDifferences"
       />
       <FilterComponent
         :selectedCampaignIds="selectedCampaignIds"
