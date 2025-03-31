@@ -119,17 +119,24 @@ export default {
 
     const formatDateLabel = (dateString) => {
       const date = new Date(dateString);
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0'); // Ensure two-digit month
-      const day = String(date.getDate()).padStart(2, '0'); // Ensure two-digit day
-      return `${year}-${month}-${day}`; // Format as "YYYY-MM-DD"
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+      return formatter.format(date); // Format as "MM/DD/YYYY"
     };
 
     const getChangeDates = computed(() => {
-      // Format dates as YYYY-MM-DD to match table row IDs
+      // Format dates as MM/DD/YYYY to match chart labels
       return props.differences.map((diff) => {
         const date = new Date(diff.date);
-        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        const formatter = new Intl.DateTimeFormat('en-US', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        });
+        return formatter.format(date); // Format as "MM/DD/YYYY"
       });
     });
 
@@ -251,7 +258,11 @@ export default {
     };
 
     const scrollToTableRow = (date) => {
-      const matchingRow = document.querySelector(`[id="changeRow-${date}"]`);
+      // Convert the displayed date (MM/DD/YYYY) back to the original format (YYYY-MM-DD)
+      const [month, day, year] = date.split('/');
+      const originalDateFormat = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+
+      const matchingRow = document.querySelector(`[id="changeRow-${originalDateFormat}"]`);
       if (matchingRow) {
         matchingRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
         matchingRow.classList.remove('flash-row'); // Remove the class to restart the animation
