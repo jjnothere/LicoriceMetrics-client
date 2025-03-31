@@ -310,24 +310,59 @@ export default {
       }
     };
 
+    const cleanUpKey = (keyString) => {
+      return keyString
+        .replace(/urn:li:adTargetingFacet:/gi, '')      // Remove urn:li:adTargetingFacet:
+        .replace(/\bAnd\b\s*\d*/gi, '')                // Remove "And 0", "And 1", etc.
+        .replace(/\bOr\b\s*\d*/gi, '')                 // Remove "Or 0", "Or 1", etc.
+        .replace(/\s+/g, ' ')                          // Normalize excessive spaces
+        .trim();
+    };
+
     const getFormattedChanges = (changeValue, urnInfoMap) => {
       const formatNestedChange = (nestedObject, prefix = '') => {
         const result = [];
 
+        if (nestedObject && typeof nestedObject === 'object' &&
+          (Array.isArray(nestedObject.added) || Array.isArray(nestedObject.removed))) {
+          const cleanedPrefix = cleanUpKey(prefix);
+
+          if (nestedObject.added && nestedObject.added.length > 0) {
+            const addedItems = nestedObject.added.map(item => replaceUrnWithInfo(item, urnInfoMap));
+            result.push({ key: `${cleanedPrefix} Added`, value: addedItems });
+          }
+
+          if (nestedObject.removed && nestedObject.removed.length > 0) {
+            const removedItems = nestedObject.removed.map(item => replaceUrnWithInfo(item, urnInfoMap));
+            result.push({ key: `${cleanedPrefix} Removed`, value: removedItems });
+          }
+
+          return result;
+        }
+
         if (Array.isArray(nestedObject)) {
           nestedObject.forEach((item) => {
-            const nestedResult = formatNestedChange(item, prefix);
+            const nestedResult = formatNestedChange(item, prefix, urnInfoMap);
             result.push(...nestedResult);
           });
         } else if (typeof nestedObject === 'object' && nestedObject !== null) {
           for (const key in nestedObject) {
-            const formattedKey = prefix ? `${prefix} ${key}` : key;
+            if (!isNaN(key)) {
+              const nestedResult = formatNestedChange(nestedObject[key], prefix, urnInfoMap);
+              result.push(...nestedResult);
+              continue;
+            }
+
+            let formattedKey = prefix ? `${prefix} ${capitalizeFirstLetter(key)}` : capitalizeFirstLetter(key);
 
             if (typeof nestedObject[key] === 'object' && nestedObject[key] !== null) {
-              const nestedResult = formatNestedChange(nestedObject[key], formattedKey);
+              const nestedResult = formatNestedChange(nestedObject[key], formattedKey, urnInfoMap);
               result.push(...nestedResult);
             } else {
-              result.push({ key: formattedKey, value: nestedObject[key] });
+              const value = nestedObject[key];
+              const formattedValue = replaceUrnWithInfo(value, urnInfoMap);
+              formattedKey = cleanUpKey(formattedKey);
+              result.push({ key: formattedKey, value: formattedValue });
             }
           }
         } else {
@@ -338,6 +373,17 @@ export default {
       };
 
       return formatNestedChange(changeValue);
+    };
+
+    const replaceUrnWithInfo = (value, urnInfoMap) => {
+      if (typeof value === 'string') {
+        return urnInfoMap[value] || value; // Replace URN with mapped info or keep the original
+      }
+      return value;
+    };
+
+    const capitalizeFirstLetter = (string) => {
+      return string.charAt(0).toUpperCase() + string.slice(1);
     };
 
     const formatTimestamp = (timestamp) => {
@@ -376,7 +422,8 @@ export default {
       filteredAndSearchedDifferences,
       getColorForChange,
       toggleChangeDetail,
-      getFormattedChanges, // Ensure getFormattedChanges is returned so it can be used in the template
+      cleanUpKey, // Ensure cleanUpKey is returned
+      getFormattedChanges, // Ensure getFormattedChanges is returned
       exportToCSV,
       keyMapping,
       formatTimestamp,
