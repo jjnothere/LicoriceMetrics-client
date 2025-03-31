@@ -27,7 +27,7 @@ const loginWithLinkedIn = () => {
       import.meta.env.MODE === 'development'
         ? import.meta.env.VITE_LINKEDIN_AUTH_URL_DEV
         : import.meta.env.VITE_LINKEDIN_AUTH_URL;
-    console.log("🐒 ~ linkedInUrl:", linkedInUrl);
+    console.log("🐒 ~ lainkedInUrl:", linkedInUrl);
     window.location.href = linkedInUrl;
   } catch (error) {
     console.error("Error during LinkedIn login:", error);
