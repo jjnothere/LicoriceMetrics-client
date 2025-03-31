@@ -76,28 +76,39 @@ export default {
           item.dateRange.start.month - 1, // Subtract 1 to handle zero-based month index
           item.dateRange.start.day
         );
-        const y = date.getFullYear();
-        const m = date.getMonth(); // Zero-based month
+
+        if (isNaN(date.getTime())) {
+          console.error(`Invalid date encountered in groupByInterval: ${JSON.stringify(item.dateRange.start)}`);
+          return null; // Skip invalid dates
+        }
+
+        const formatter = new Intl.DateTimeFormat('en-US', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        });
+
         switch (interval) {
           case 'WEEKLY':
             const dayOfWeek = date.getDay();
             const offset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
             const monday = new Date(date.getTime());
             monday.setDate(monday.getDate() - offset);
-            return `W:${monday.getMonth() + 1}/${monday.getDate()}/${monday.getFullYear()}`; // Correct month
+            return `W:${formatter.format(monday)}`;
           case 'MONTHLY':
-            return `M:${y}-${m + 1}`; // Correct month
+            return `M:${formatter.format(new Date(date.getFullYear(), date.getMonth(), 1))}`;
           case 'QUARTERLY':
-            const quarter = Math.floor(m / 3) + 1;
-            return `Q${quarter}-${y}`;
+            const quarter = Math.floor(date.getMonth() / 3) + 1;
+            return `Q${quarter}-${date.getFullYear()}`;
           default:
-            return `D:${y}-${m + 1}-${date.getDate()}`; // Correct month
+            return `D:${formatter.format(date)}`;
         }
       };
 
       const aggregatedMap = {};
       sortedElements.forEach(item => {
         const key = formatKey(item);
+        if (!key) return; // Skip invalid dates
         if (!aggregatedMap[key]) {
           aggregatedMap[key] = { metric1: 0, metric2: 0, rawDate: item.dateRange.start };
         }
@@ -119,6 +130,10 @@ export default {
 
     const formatDateLabel = (dateString) => {
       const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        console.error(`Invalid date encountered in formatDateLabel: ${dateString}`);
+        return 'Invalid Date'; // Fallback for invalid dates
+      }
       const formatter = new Intl.DateTimeFormat('en-US', {
         year: 'numeric',
         month: '2-digit',
@@ -291,21 +306,21 @@ export default {
 <style scoped>
 canvas {
   width: 100% !important;
-  height: 400px !important;
+  height: 300px !important;
 }
 
 .flash-row {
   animation: flash 0.5s ease-in-out 6; /* Flash 6 times (3 seconds total) */
-  background-color: yellow;
+  background-color: #1c1c21; /* Add light gray background color */
 }
 
 @keyframes flash {
   0%, 100% {
-    background-color: yellow;
+    background-color: #1c1c21; /* Light gray at the start and end */
     opacity: 1;
   }
   50% {
-    background-color: transparent;
+    background-color: transparent; /* Transparent in the middle */
     opacity: 0.5;
   }
 }

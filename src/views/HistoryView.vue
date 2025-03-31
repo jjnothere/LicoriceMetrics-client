@@ -165,7 +165,7 @@ export default {
           headers: { Authorization: `Bearer ${token}` },
           withCredentials: true
         });
-        console.log('Changes checked and saved successfully:', response.data);
+        
       } catch (error) {
         console.error('Error checking for changes:', error);
       }
