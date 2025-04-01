@@ -1,14 +1,14 @@
 <template>
   <div class="filter-container">
     <div class="filter-buttons">
-      <button class="filter-button" :class="{ active: isActive('all') }" @click="clearAll">All Changes</button>
-      <button class="filter-button" :class="{ active: isActive('budget') }" @click="toggleBudget">Budget/Bids</button>
-      <button class="filter-button" :class="{ active: isActive('audience') }" @click="toggleAudience">Audience</button>
-      <button class="filter-button" :class="{ active: isActive('objLocLang') }" @click="toggleObjLocLang">Obj/Loc/Lang</button>
-      <button class="filter-button" :class="{ active: isActive('adType') }" @click="toggleAdType">Ad Type</button>
-      <button class="filter-button" :class="{ active: isActive('nameStatus') }" @click="toggleNameStatus">Status/Name</button>
-      <button class="filter-button" :class="{ active: isActive('creatives') }" @click="toggleCreatives">Creatives</button>
-      <button class="filter-button" :class="{ active: isActive('select') }" @click="openModal">Select</button>
+      <button class="filter-button" :class="{ active: isActive('all') }" @click="clearAll" style="--filter-color: black;">All Changes</button>
+      <button class="filter-button" :class="{ active: isActive('budget') }" @click="toggleBudget" style="--filter-color: #32CD32;">Budget/Bids</button>
+      <button class="filter-button" :class="{ active: isActive('audience') }" @click="toggleAudience" style="--filter-color: #FFD700;">Audience</button>
+      <button class="filter-button" :class="{ active: isActive('objLocLang') }" @click="toggleObjLocLang" style="--filter-color: #800080;">Obj/Loc/Lang</button>
+      <button class="filter-button" :class="{ active: isActive('adType') }" @click="toggleAdType" style="--filter-color: #87CEFA;">Ad Type</button>
+      <button class="filter-button" :class="{ active: isActive('nameStatus') }" @click="toggleNameStatus" style="--filter-color: #FF4500;">Status/Name</button>
+      <button class="filter-button" :class="{ active: isActive('creatives') }" @click="toggleCreatives" style="--filter-color: #1E90FF;">Creatives</button>
+      <button class="filter-button" :class="{ active: isActive('select') }" @click="openModal" style="--filter-color: black;">Select</button>
     </div>
     <input
       type="text"
@@ -114,45 +114,46 @@ export default {
 <style scoped>
 .filter-container {
   display: flex;
-  justify-content: space-between; /* Align buttons to the left and search input to the right */
+  justify-content: space-between;
   align-items: center;
-  gap: 10px; /* Add spacing between buttons and search input */
+  gap: 10px;
 }
 
 .filter-buttons {
   display: flex;
-  flex-wrap: nowrap; /* Prevent buttons from wrapping to a new row */
+  flex-wrap: nowrap;
 }
 
 .filter-button {
   padding: 5px 10px;
-  background-color: #F9F9F8; /* Match table header color */
-  color: #1C1B21;
-  border: 2px solid #1C1B21;
+  background-color: transparent;
+  color: var(--filter-color);
+  border: 2px solid var(--filter-color);
   border-radius: 20px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: background-color 0.3s, color 0.3s;
   font-size: 16px;
   font-weight: bold;
   margin-right: 10px;
 }
 
 .filter-button.active {
-  background-color: #61bca8ff; /* Highlight active filters */
+  background-color: var(--filter-color);
   color: white;
 }
 
 .filter-button:hover {
-  background-color: #E0E0E0; /* Slightly darker shade for hover effect */
+  background-color: var(--filter-color);
+  color: white;
 }
 
 .search-input {
-  flex-shrink: 0; /* Prevent the search input from shrinking */
+  flex-shrink: 0;
   padding: 5px 10px;
   border: 1px solid #ccc;
   border-radius: 20px;
   font-size: 14px;
   width: 200px;
-  margin-left: auto; /* Push the search input to the right */
+  margin-left: auto;
 }
 </style>
