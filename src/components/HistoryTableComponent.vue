@@ -258,7 +258,8 @@ export default {
         return isWithinDateRange;
       });
 
-      return filtered;
+      // Sort by date (newest to oldest)
+      return filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
     });
 
     const searchNestedValues = (value, searchTextLower) => {

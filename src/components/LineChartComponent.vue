@@ -9,6 +9,7 @@
 import axios from 'axios';
 import { ref, onMounted, watch, computed } from 'vue';
 import { Chart, registerables } from 'chart.js';
+import { colorMapping, keyMapping } from '../constants/constants'; // Import colorMapping and keyAliasMapping
 
 Chart.register(...registerables);
 
@@ -155,6 +156,38 @@ export default {
       });
     });
 
+    const getCategoryColor = (date) => {
+      const change = props.differences.find(diff => {
+        const diffDate = new Date(diff.date);
+        const formattedDate = new Intl.DateTimeFormat('en-US', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        }).format(diffDate);
+        return formattedDate === date;
+      });
+
+      if (!change) {
+        console.log(`No change found for date: ${date}`);
+        return 'black'; // Default color if no match
+      }
+
+      const changeKeys = Object.keys(change.changes || {});
+      console.log(`Change keys for date ${date}:`, changeKeys);
+      console.log('Available colorMapping keys:', Object.keys(colorMapping));
+
+      for (const key of changeKeys) {
+        const mappedKey = keyMapping[key] || key; // Use alias mapping if available
+        if (colorMapping[mappedKey]) {
+          console.log(`Color for date ${date}: ${colorMapping[mappedKey]} (Key: ${mappedKey})`);
+          return colorMapping[mappedKey]; // Return the first matching color
+        }
+      }
+
+      console.log(`No matching key found for date: ${date}, returning default color.`);
+      return 'black'; // Default color if no matching key
+    };
+
     const fetchChartData = async () => {
       try {
         const startDate = formatDate(props.chartStartDate);
@@ -216,7 +249,7 @@ export default {
               borderColor: '#4caf50',
               fill: false,
               pointBackgroundColor: labels.map((label) =>
-                changeDates.includes(label) ? 'red' : '#4caf50'
+                changeDates.includes(label) ? getCategoryColor(label) : '#4caf50'
               ),
               pointRadius: labels.map((label) =>
                 changeDates.includes(label) ? 6 : 3
@@ -228,7 +261,7 @@ export default {
               borderColor: '#f44336',
               fill: false,
               pointBackgroundColor: labels.map((label) =>
-                changeDates.includes(label) ? 'red' : '#f44336'
+                changeDates.includes(label) ? getCategoryColor(label) : '#f44336'
               ),
               pointRadius: labels.map((label) =>
                 changeDates.includes(label) ? 6 : 3
