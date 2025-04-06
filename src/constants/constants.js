@@ -268,12 +268,12 @@ const countryCodes = {
     // Yellow - Audience targeting
     'Targeting Criteria': '#FFD700', // Gold
     'Audience Expansion': '#FFD700', // Gold
-    Locale: '#FFD700', // Gold
-
+    
     // Purple - Objective, location, and language
     'Objective Type': '#800080', // Purple
     'Location': '#800080', // Purple
     'Language': '#800080', // Purple
+    Locale: '#800080', // Gold
 
     // Light Blue - Ad type
     Format: '#87CEFA', // Light Sky Blue
