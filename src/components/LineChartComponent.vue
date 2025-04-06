@@ -9,9 +9,10 @@
 import axios from 'axios';
 import { ref, onMounted, watch, computed } from 'vue';
 import { Chart, registerables } from 'chart.js';
+import annotationPlugin from 'chartjs-plugin-annotation'; // Import annotation plugin
 import { colorMapping, keyMapping } from '../constants/constants'; // Import colorMapping and keyAliasMapping
 
-Chart.register(...registerables);
+Chart.register(...registerables, annotationPlugin); // Register annotation plugin
 
 export default {
   name: 'LineChartComponent',
@@ -244,11 +245,12 @@ export default {
               borderColor: '#4caf50',
               fill: false,
               pointBackgroundColor: labels.map((label) =>
-                changeDates.includes(label) ? getCategoryColor(label) : '#4caf50'
+                changeDates.includes(label) ? getCategoryColor(label) : 'transparent' // Only show dots on change dates
               ),
               pointRadius: labels.map((label) =>
-                changeDates.includes(label) ? 6 : 3
-              )
+                changeDates.includes(label) ? 3 : 0 // Only show dots on change dates
+              ),
+              borderWidth: 2
             },
             {
               label: props.metric2,
@@ -256,11 +258,12 @@ export default {
               borderColor: '#f44336',
               fill: false,
               pointBackgroundColor: labels.map((label) =>
-                changeDates.includes(label) ? getCategoryColor(label) : '#f44336'
+                changeDates.includes(label) ? getCategoryColor(label) : 'transparent' // Only show dots on change dates
               ),
               pointRadius: labels.map((label) =>
-                changeDates.includes(label) ? 6 : 3
-              )
+                changeDates.includes(label) ? 3 : 0 // Only show dots on change dates
+              ),
+              borderWidth: 2
             }
           ]
         },
@@ -278,6 +281,24 @@ export default {
                   return `${context.dataset.label}: ${context.raw}`;
                 }
               }
+            },
+            annotation: {
+              annotations: changeDates.map((date) => ({
+                type: 'line',
+                mode: 'vertical',
+                scaleID: 'x',
+                value: date,
+                borderColor: getCategoryColor(date), // Dynamically color-code by category
+                borderWidth: 2,
+                borderDash: [5, 5], // Dashed line for better visibility
+                label: {
+                  content: 'Change',
+                  enabled: true,
+                  position: 'top',
+                  backgroundColor: getCategoryColor(date)
+                },
+                onClick: () => scrollToTableRow(date) // Make the line clickable
+              }))
             }
           },
           onClick: (event, elements) => {
@@ -322,6 +343,14 @@ export default {
       () => {
         fetchChartData();
       }
+    );
+
+    watch(
+      () => props.differences,
+      () => {
+        updateChart();
+      },
+      { deep: true, immediate: true }
     );
 
     return {
