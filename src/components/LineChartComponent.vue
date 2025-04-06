@@ -350,7 +350,7 @@ export default {
       () => {
         updateChart();
       },
-      { deep: true, immediate: true }
+      { deep: true}
     );
 
     return {
