@@ -168,23 +168,18 @@ export default {
       });
 
       if (!change) {
-        console.log(`No change found for date: ${date}`);
         return 'black'; // Default color if no match
       }
 
       const changeKeys = Object.keys(change.changes || {});
-      console.log(`Change keys for date ${date}:`, changeKeys);
-      console.log('Available colorMapping keys:', Object.keys(colorMapping));
 
       for (const key of changeKeys) {
         const mappedKey = keyMapping[key] || key; // Use alias mapping if available
         if (colorMapping[mappedKey]) {
-          console.log(`Color for date ${date}: ${colorMapping[mappedKey]} (Key: ${mappedKey})`);
           return colorMapping[mappedKey]; // Return the first matching color
         }
       }
 
-      console.log(`No matching key found for date: ${date}, returning default color.`);
       return 'black'; // Default color if no matching key
     };
 
