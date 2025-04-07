@@ -62,8 +62,8 @@
           <!-- Notes Column in Table -->
           <td class="campaign-notes">
             <!-- Add Note Section -->
-            <div v-if="difference.addingNote" class="note-input">
-              <input v-model="difference.newNote" placeholder="Add a new note" @keyup.enter="saveNewNotePrompt(difference._id)" @keyup.esc="cancelAddNotePrompt(difference._id)" />
+            <div v-if="editingNotes[difference._id]?.addingNote" class="note-input">
+              <input v-model="editingNotes[difference._id].newNote" placeholder="Add a new note" @keyup.enter="saveNewNotePrompt(difference._id)" @keyup.esc="cancelAddNotePrompt(difference._id)" />
               <button class="icon-button" @click="saveNewNotePrompt(difference._id)">
                 <i class="fas fa-save"></i>
               </button>
@@ -86,8 +86,8 @@
               <div v-for="note in difference.notes.slice().reverse()" :key="difference._id + '-' + note._id" class="note">
                 <small class="note-timestamp">{{ formatTimestamp(note.timestamp) }}</small>
                 <!-- Edit Note Input -->
-                <div v-if="note.isEditing" class="note-input">
-                  <input v-model="note.newNote" @keyup.enter="saveNotePrompt(difference._id, note._id)" @keyup.esc="cancelEditMode(difference._id, note._id)" />
+                <div v-if="editingNotes[difference._id]?.[note._id]?.isEditing" class="note-input">
+                  <input v-model="editingNotes[difference._id][note._id].newNote" @keyup.enter="saveNotePrompt(difference._id, note._id)" @keyup.esc="cancelEditMode(difference._id, note._id)" />
                   <button class="icon-button" @click="saveNotePrompt(difference._id, note._id)">
                     <i class="fas fa-save"></i>
                   </button>
@@ -117,8 +117,8 @@
                   {{ formatTimestamp(difference.notes[difference.notes.length - 1].timestamp) }}
                 </small>
                 <!-- Edit Note Input -->
-                <div v-if="difference.notes[difference.notes.length - 1].isEditing" class="note-input">
-                  <input v-model="difference.notes[difference.notes.length - 1].newNote" @keyup.enter="saveNotePrompt(difference._id, difference.notes[difference.notes.length - 1]._id)" @keyup.esc="cancelEditMode(difference._id, difference.notes[difference.notes.length - 1]._id)" />
+                <div v-if="editingNotes[difference._id]?.[difference.notes[difference.notes.length - 1]._id]?.isEditing" class="note-input">
+                  <input v-model="editingNotes[difference._id][difference.notes[difference.notes.length - 1]._id].newNote" @keyup.enter="saveNotePrompt(difference._id, difference.notes[difference.notes.length - 1]._id)" @keyup.esc="cancelEditMode(difference._id, difference.notes[difference.notes.length - 1]._id)" />
                   <button class="icon-button" @click="saveNotePrompt(difference._id, difference.notes[difference.notes.length - 1]._id)">
                     <i class="fas fa-save"></i>
                   </button>
@@ -168,6 +168,7 @@ export default {
   },
   setup(props) {
     const differences = ref([]);
+    const editingNotes = ref({}); // Separate state for managing note edits
     const keyMapping = ref(keyMappingConst);
 
     // Ensure differences are reactive and initialize necessary properties
@@ -189,23 +190,18 @@ export default {
     );
 
     const enableAddNotePrompt = (id) => {
-      const difference = differences.value.find((diff) => diff._id === id);
-      if (difference) {
-        difference.addingNote = true;
-      }
+      editingNotes.value[id] = { addingNote: true, newNote: '' };
     };
 
     const cancelAddNotePrompt = (id) => {
-      const difference = differences.value.find((diff) => diff._id === id);
-      if (difference) {
-        difference.addingNote = false;
-        difference.newNote = '';
+      if (editingNotes.value[id]) {
+        delete editingNotes.value[id];
       }
     };
 
     const saveNewNotePrompt = async (id) => {
-      const difference = differences.value.find((diff) => diff._id === id);
-      if (!difference || !difference.newNote) return;
+      const noteState = editingNotes.value[id];
+      if (!noteState || !noteState.newNote) return;
 
       const token = document.cookie
         .split('; ')
@@ -223,7 +219,7 @@ export default {
           {
             accountId: props.selectedAdAccountId,
             campaignId: id,
-            newNote: difference.newNote
+            newNote: noteState.newNote
           },
           {
             headers: { Authorization: `Bearer ${token}` },
@@ -231,16 +227,81 @@ export default {
           }
         );
 
-        difference.notes.push({
-          _id: ObjectID().toHexString(),
-          note: difference.newNote,
-          timestamp: new Date().toISOString()
-        });
+        const difference = differences.value.find((diff) => diff._id === id);
+        if (difference) {
+          difference.notes.push({
+            _id: ObjectID().toHexString(),
+            note: noteState.newNote,
+            timestamp: new Date().toISOString()
+          });
+        }
 
-        difference.newNote = '';
-        difference.addingNote = false;
+        delete editingNotes.value[id];
       } catch (error) {
         console.error('Error adding note:', error);
+      }
+    };
+
+    const enableEditMode = (differenceId, noteId) => {
+      if (!editingNotes.value[differenceId]) {
+        editingNotes.value[differenceId] = {};
+      }
+      const difference = differences.value.find((diff) => diff._id === differenceId);
+      if (difference) {
+        const note = difference.notes.find((n) => n._id === noteId);
+        if (note) {
+          editingNotes.value[differenceId][noteId] = { isEditing: true, newNote: note.note };
+        }
+      }
+    };
+
+    const cancelEditMode = (differenceId, noteId) => {
+      if (editingNotes.value[differenceId] && editingNotes.value[differenceId][noteId]) {
+        delete editingNotes.value[differenceId][noteId];
+      }
+    };
+
+    const saveNotePrompt = async (differenceId, noteId) => {
+      const noteState = editingNotes.value[differenceId]?.[noteId];
+      if (!noteState || !noteState.newNote) return;
+
+      const token = document.cookie
+        .split('; ')
+        .find((row) => row.startsWith('accessToken='))
+        ?.split('=')[1];
+
+      if (!token) {
+        console.error('No authorization token found');
+        return;
+      }
+
+      try {
+        await api.post(
+          '/api/edit-note',
+          {
+            accountId: props.selectedAdAccountId,
+            campaignId: differenceId,
+            noteId,
+            updatedNote: noteState.newNote
+          },
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            withCredentials: true
+          }
+        );
+
+        const difference = differences.value.find((diff) => diff._id === differenceId);
+        if (difference) {
+          const note = difference.notes.find((n) => n._id === noteId);
+          if (note) {
+            note.note = noteState.newNote;
+            note.timestamp = new Date().toISOString(); // Update the timestamp
+          }
+        }
+
+        delete editingNotes.value[differenceId][noteId];
+      } catch (error) {
+        console.error('Error editing note:', error);
       }
     };
 
@@ -432,8 +493,12 @@ export default {
       enableAddNotePrompt, // Ensure enableAddNotePrompt is returned
       cancelAddNotePrompt, // Ensure cancelAddNotePrompt is returned
       saveNewNotePrompt, // Ensure saveNewNotePrompt is returned
+      enableEditMode,
+      cancelEditMode,
+      saveNotePrompt,
+      editingNotes // Expose editingNotes for template usage
     };
-  },
+  }
 };
 </script>
 
