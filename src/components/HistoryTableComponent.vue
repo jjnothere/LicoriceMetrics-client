@@ -306,6 +306,40 @@ export default {
       }
     };
 
+    const deleteNotePrompt = async (differenceId, noteId) => {
+      const token = document.cookie
+        .split('; ')
+        .find((row) => row.startsWith('accessToken='))
+        ?.split('=')[1];
+
+      if (!token) {
+        console.error('No authorization token found');
+        return;
+      }
+
+      try {
+        await api.post(
+          '/api/delete-note',
+          {
+            accountId: props.selectedAdAccountId,
+            campaignId: differenceId,
+            noteId
+          },
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            withCredentials: true
+          }
+        );
+
+        const difference = differences.value.find((diff) => diff._id === differenceId);
+        if (difference) {
+          difference.notes = difference.notes.filter((note) => note._id !== noteId);
+        }
+      } catch (error) {
+        console.error('Error deleting note:', error);
+      }
+    };
+
     const filteredDifferences = computed(() => {
       if (!props.dateRange || !props.dateRange.start || !props.dateRange.end) {
         console.error("Date range is not properly defined", props.dateRange);
@@ -497,6 +531,7 @@ export default {
       enableEditMode,
       cancelEditMode,
       saveNotePrompt,
+      deleteNotePrompt,
       editingNotes // Expose editingNotes for template usage
     };
   }
