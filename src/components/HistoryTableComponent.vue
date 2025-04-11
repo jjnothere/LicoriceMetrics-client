@@ -164,7 +164,8 @@ export default {
     dateRange: Object,
     selectedAdAccountId: String,
     activeFilters: Array,
-    searchText: String
+    searchText: String,
+    urnInfoMap: Object // Add urnInfoMap as a prop
   },
   setup(props) {
     const differences = ref([]);
@@ -381,7 +382,7 @@ export default {
         .trim();
     };
 
-    const getFormattedChanges = (changeValue, urnInfoMap) => {
+    const getFormattedChanges = (changeValue) => {
       const formatNestedChange = (nestedObject, prefix = '') => {
         const result = [];
 
@@ -390,12 +391,12 @@ export default {
           const cleanedPrefix = cleanUpKey(prefix);
 
           if (nestedObject.added && nestedObject.added.length > 0) {
-            const addedItems = nestedObject.added.map(item => replaceUrnWithInfo(item, urnInfoMap));
+            const addedItems = nestedObject.added.map(item => replaceUrnWithInfo(item));
             result.push({ key: `${cleanedPrefix} Added`, value: addedItems });
           }
 
           if (nestedObject.removed && nestedObject.removed.length > 0) {
-            const removedItems = nestedObject.removed.map(item => replaceUrnWithInfo(item, urnInfoMap));
+            const removedItems = nestedObject.removed.map(item => replaceUrnWithInfo(item));
             result.push({ key: `${cleanedPrefix} Removed`, value: removedItems });
           }
 
@@ -404,13 +405,13 @@ export default {
 
         if (Array.isArray(nestedObject)) {
           nestedObject.forEach((item) => {
-            const nestedResult = formatNestedChange(item, prefix, urnInfoMap);
+            const nestedResult = formatNestedChange(item, prefix);
             result.push(...nestedResult);
           });
         } else if (typeof nestedObject === 'object' && nestedObject !== null) {
           for (const key in nestedObject) {
             if (!isNaN(key)) {
-              const nestedResult = formatNestedChange(nestedObject[key], prefix, urnInfoMap);
+              const nestedResult = formatNestedChange(nestedObject[key], prefix);
               result.push(...nestedResult);
               continue;
             }
@@ -418,11 +419,11 @@ export default {
             let formattedKey = prefix ? `${prefix} ${capitalizeFirstLetter(key)}` : capitalizeFirstLetter(key);
 
             if (typeof nestedObject[key] === 'object' && nestedObject[key] !== null) {
-              const nestedResult = formatNestedChange(nestedObject[key], formattedKey, urnInfoMap);
+              const nestedResult = formatNestedChange(nestedObject[key], formattedKey);
               result.push(...nestedResult);
             } else {
               const value = nestedObject[key];
-              const formattedValue = replaceUrnWithInfo(value, urnInfoMap);
+              const formattedValue = replaceUrnWithInfo(value);
               formattedKey = cleanUpKey(formattedKey);
               result.push({ key: formattedKey, value: formattedValue });
             }
@@ -437,9 +438,9 @@ export default {
       return formatNestedChange(changeValue);
     };
 
-    const replaceUrnWithInfo = (value, urnInfoMap) => {
+    const replaceUrnWithInfo = (value) => {
       if (typeof value === 'string') {
-        return urnInfoMap[value] || value; // Replace URN with mapped info or keep the original
+        return props.urnInfoMap[value] || value; // Replace URN with mapped info or keep the original
       }
       return value;
     };

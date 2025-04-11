@@ -56,6 +56,7 @@
         :selectedAdAccountId="selectedAdAccountId"
         :activeFilters="activeFilters"
         :searchText="searchText"
+        :urnInfoMap="urnInfoMap"
       />
     </div>
   </div>
@@ -89,6 +90,7 @@ export default {
     const selectedEndDate = ref(today);
     const selectedAdAccountId = computed(() => store.state.selectedAdAccountId); // Get from Vuex store
     const differences = ref([]);
+    const urnInfoMap = ref({}); // Define urnInfoMap as a ref
     const campaignsMap = ref({});
     const selectedCampaigns = ref([]);
     const selectedCampaignIds = ref([]);
@@ -131,16 +133,17 @@ export default {
           headers: { Authorization: `Bearer ${token}` },
           withCredentials: true
         });
-        differences.value = response.data.reverse().map(change => {
-          // Ensure all necessary properties are initialized reactively
-          return reactive({
+        const { changes, urnInfoMap: fetchedUrnInfoMap } = response.data;
+        urnInfoMap.value = fetchedUrnInfoMap || {}; // Initialize urnInfoMap
+        differences.value = changes.reverse().map(change =>
+          reactive({
             ...change,
-            _id: typeof change._id === 'object' && change._id.$oid ? change._id.$oid : change._id || ObjectID().toHexString(),
+            _id: typeof change._id === 'object' && change._id.$oid ? change._id.$oid : change._id,
             expandedChanges: change.expandedChanges || {}, // Initialize expandedChanges
             addingNote: false, // Initialize addingNote
             newNote: '' // Initialize newNote
-          });
-        });
+          })
+        );
       } catch (error) {
         console.error('Error fetching differences:', error);
       }
@@ -165,7 +168,6 @@ export default {
           headers: { Authorization: `Bearer ${token}` },
           withCredentials: true
         });
-        
       } catch (error) {
         console.error('Error checking for changes:', error);
       }
@@ -176,7 +178,6 @@ export default {
         console.error("Date range is not properly defined", dateRange.value);
         return differences.value;
       }
-
       return differences.value.filter(diff => {
         const diffDate = new Date(diff.date);
         const isWithinDateRange = diffDate >= new Date(dateRange.value.start) && diffDate <= new Date(dateRange.value.end);
@@ -226,6 +227,7 @@ export default {
         return diff;
       });
     });
+
     const setDefaultAdAccountId = () => {
       if (store.state.adAccounts && store.state.adAccounts.length > 0) {
         store.dispatch('updateSelectedAdAccountId', store.state.adAccounts[0].id);
@@ -359,7 +361,8 @@ export default {
       activeFilters, // Return the activeFilters state
       updateActiveFilters, // Return the updateActiveFilters method
       searchText, // Return the searchText state
-      updateSearchText // Return the updateSearchText method
+      updateSearchText, // Return the updateSearchText method
+      urnInfoMap // Return the urnInfoMap state
     };
   }
 }
