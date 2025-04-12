@@ -157,7 +157,7 @@ export default {
       });
     });
 
-    const getCategoryColor = (date) => {
+    const getCategoryColors = (date) => {
       const change = props.differences.find(diff => {
         const diffDate = new Date(diff.date);
         const formattedDate = new Intl.DateTimeFormat('en-US', {
@@ -169,19 +169,16 @@ export default {
       });
 
       if (!change) {
-        return 'black'; // Default color if no match
+        return ['black']; // Default color if no match
       }
 
       const changeKeys = Object.keys(change.changes || {});
-
-      for (const key of changeKeys) {
+      const colors = changeKeys.map((key) => {
         const mappedKey = keyMapping[key] || key; // Use alias mapping if available
-        if (colorMapping[mappedKey]) {
-          return colorMapping[mappedKey]; // Return the first matching color
-        }
-      }
+        return colorMapping[mappedKey] || 'black'; // Return the color or default to black
+      });
 
-      return 'black'; // Default color if no matching key
+      return colors.length > 0 ? colors : ['black']; // Ensure at least one color is returned
     };
 
     const fetchChartData = async () => {
@@ -245,7 +242,7 @@ export default {
               borderColor: '#4caf50',
               fill: false,
               pointBackgroundColor: labels.map((label) =>
-                changeDates.includes(label) ? getCategoryColor(label) : 'transparent' // Only show dots on change dates
+                getCategoryColors(label).length > 1 ? 'transparent' : getCategoryColors(label)[0] // Use single color if only one change
               ),
               pointRadius: labels.map((label) =>
                 changeDates.includes(label) ? 3 : 0 // Only show dots on change dates
@@ -258,7 +255,7 @@ export default {
               borderColor: '#f44336',
               fill: false,
               pointBackgroundColor: labels.map((label) =>
-                changeDates.includes(label) ? getCategoryColor(label) : 'transparent' // Only show dots on change dates
+                getCategoryColors(label).length > 1 ? 'transparent' : getCategoryColors(label)[0] // Use single color if only one change
               ),
               pointRadius: labels.map((label) =>
                 changeDates.includes(label) ? 3 : 0 // Only show dots on change dates
@@ -283,22 +280,40 @@ export default {
               }
             },
             annotation: {
-              annotations: changeDates.map((date) => ({
-                type: 'line',
-                mode: 'vertical',
-                scaleID: 'x',
-                value: date,
-                borderColor: getCategoryColor(date), // Dynamically color-code by category
-                borderWidth: 2,
-                borderDash: [5, 5], // Dashed line for better visibility
-                label: {
-                  content: 'Change',
-                  enabled: true,
-                  position: 'top',
-                  backgroundColor: getCategoryColor(date)
-                },
-                onClick: () => scrollToTableRow(date) // Make the line clickable
-              }))
+              annotations: changeDates.flatMap((date) => {
+  const colors = getCategoryColors(date);
+  const n = colors.length;
+  
+  // The length (in px) of each color dash
+  const dashLen = 8;
+
+  // We map over all colors for this date, creating a separate "line" annotation for each color
+  return colors.map((color, index) => ({
+    type: 'line',
+    mode: 'vertical',
+    scaleID: 'x',
+    value: date,
+    borderColor: color,
+    borderWidth: 4,
+    
+    // Key part: repeating dash pattern. For n colors, each line "turns on" for dashLen
+    // and "turns off" for dashLen*(n - 1). 
+    borderDash: [dashLen, dashLen * (n - 1)],
+    
+    // Offset each color line so they interleave like stripes
+    borderDashOffset: index * dashLen,
+
+    label: {
+      // Only show label on the first color line so it's not repeated
+      content: index === 0 ? `Changes (${n})` : '',
+      enabled: index === 0,
+      position: 'top',
+      backgroundColor: color
+    },
+
+    onClick: () => scrollToTableRow(date) // Same onClick you had before
+  }));
+})
             }
           },
           onClick: (event, elements) => {
