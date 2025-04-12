@@ -515,6 +515,13 @@ export default {
       XLSX.writeFile(workbook, 'changes.csv');
     };
 
+    const toggleNotes = (differenceId) => {
+      const difference = differences.value.find((diff) => diff._id === differenceId);
+      if (difference) {
+        difference.showAllNotes = !difference.showAllNotes;
+      }
+    };
+
     return {
       filteredAndSearchedDifferences,
       getColorForChange,
@@ -532,7 +539,8 @@ export default {
       cancelEditMode,
       saveNotePrompt,
       deleteNotePrompt,
-      editingNotes // Expose editingNotes for template usage
+      editingNotes, // Expose editingNotes for template usage
+      toggleNotes // Ensure toggleNotes is returned
     };
   }
 };
