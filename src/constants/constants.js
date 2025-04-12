@@ -1,5 +1,5 @@
 // Color mappings for displaying changes
-const colorMapping = {
+export  const colorMapping = {
   // Green - Budgets, bids, cost caps, spend type (daily/lifetime)
   'Daily Budget': '#32CD32', // Lime Green
   'Unit Cost': '#32CD32', // Lime Green
@@ -33,7 +33,7 @@ const colorMapping = {
 }
 
 // Key mappings for differences
-const keyMapping = {
+export const keyMapping = {
   account: 'Account',
   associatedEntity: 'Associated Entity',
   audienceExpansionEnabled: 'Audience Expansion',
@@ -61,15 +61,6 @@ const keyMapping = {
   version: 'Version',
   creatives: 'Creatives'
 }
-
-const filterMapping = {
-  budget: ['Daily Budget', 'Unit Cost', 'Cost Type', 'Pacing Strategy'],
-  audience: ['Targeting Criteria', 'Audience Expansion'],
-  objLocLang: ['Objective Type', 'Location', 'Language', 'Locale'],
-  adType: ['Format', 'Ad Type', 'Campaign Type'],
-  nameStatus: ['Status', 'Name', 'Campaign Group'],
-  creatives: ['Creatives', 'Creative Selection', 'Creative Rotation']
-};
 
 export const metricMapping = {
   actionClicks: 'Action Clicks',
@@ -171,5 +162,3 @@ export const metricMapping = {
   viralVideoThirdQuartileCompletions: 'Viral Video Third Quartile Completions',
   viralVideoViews: 'Viral Video Views'
 };
-
-export { colorMapping, keyMapping, filterMapping }

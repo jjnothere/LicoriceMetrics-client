@@ -188,12 +188,12 @@ export default {
         const isSelectedCampaign = selectedCampaignIds.value.length === 0 || selectedCampaignIds.value.includes(diff.campaignId);
 
         // Define change types
-        const isCreativeChange = diff.changes && diff.changes.creatives;
-        const isBudgetChange = diff.changes && (diff.changes.dailyBudget || diff.changes.unitCost);
-        const isAdTypeChange = diff.changes && diff.changes.type;
-        const isAudienceChange = diff.changes && diff.changes.targetingCriteria;
-        const isNameStatusChange = diff.changes && (diff.changes.name || diff.changes.status);
-        const isObjLocLangChange = diff.changes && (diff.changes.local || diff.changes.objectiveType || diff.changes.locale);
+        const isCreativeChange = diff.changes && Object.keys(diff.changes).some(key => ['creatives', 'creativeSelection', 'creativeRotation'].includes(key));
+        const isBudgetChange = diff.changes && Object.keys(diff.changes).some(key => ['dailyBudget', 'unitCost', 'costType', 'pacingStrategy'].includes(key));
+        const isAdTypeChange = diff.changes && Object.keys(diff.changes).some(key => ['format', 'type', 'campaignGroup'].includes(key));
+        const isAudienceChange = diff.changes && Object.keys(diff.changes).some(key => ['targetingCriteria', 'audienceExpansionEnabled'].includes(key));
+        const isNameStatusChange = diff.changes && Object.keys(diff.changes).some(key => ['status', 'name', 'campaignGroup'].includes(key));
+        const isObjLocLangChange = diff.changes && Object.keys(diff.changes).some(key => ['objectiveType', 'location', 'language', 'locale'].includes(key));
 
         // Check if no type filters are active
         const noTypeFiltersActive =
