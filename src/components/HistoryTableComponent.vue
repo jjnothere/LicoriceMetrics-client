@@ -328,10 +328,6 @@ export default {
       }
 
       try {
-        console.log('accountId:', props.selectedAdAccountId);
-        console.log('campaignId:', differenceId);
-        console.log('noteId:', noteId);
-
         await api.post(
           '/api/delete-note',
           {
