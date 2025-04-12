@@ -215,7 +215,7 @@ export default {
       }
 
       try {
-        await api.post(
+        const { data } = await api.post(
           '/api/add-note',
           {
             accountId: props.selectedAdAccountId,
@@ -223,23 +223,26 @@ export default {
             newNote: noteState.newNote
           },
           {
-            headers: { Authorization: `Bearer ${token}` },
+            headers: {
+              'Content-Type': 'application/json'
+            },
             withCredentials: true
           }
         );
 
-        const difference = differences.value.find((diff) => diff._id === id);
+        const difference = differences.value.find(diff => diff._id === id);
         if (difference) {
+          // Append the new note with the correct ID from the backend
           difference.notes.push({
-            _id: ObjectID().toHexString(),
+            _id: data.noteId, // This must match what the backend sends
             note: noteState.newNote,
-            timestamp: new Date().toISOString()
+            timestamp: data.timestamp || new Date().toISOString()
           });
         }
 
         delete editingNotes.value[id];
       } catch (error) {
-        console.error('Error adding note:', error);
+        console.error("Error adding note:", error);
       }
     };
 
@@ -277,12 +280,24 @@ export default {
       }
 
       try {
+        const difference = differences.value.find((diff) => diff._id === differenceId);
+        if (!difference) {
+          console.error('Difference not found');
+          return;
+        }
+
+        const note = difference.notes.find((n) => n._id === noteId);
+        if (!note) {
+          console.error('Note not found');
+          return;
+        }
+
         await api.post(
           '/api/edit-note',
           {
             accountId: props.selectedAdAccountId,
             campaignId: differenceId,
-            noteId,
+            noteId: String(noteId), // Ensure noteId is sent as a string
             updatedNote: noteState.newNote
           },
           {
@@ -291,14 +306,9 @@ export default {
           }
         );
 
-        const difference = differences.value.find((diff) => diff._id === differenceId);
-        if (difference) {
-          const note = difference.notes.find((n) => n._id === noteId);
-          if (note) {
-            note.note = noteState.newNote;
-            note.timestamp = new Date().toISOString(); // Update the timestamp
-          }
-        }
+        // Update the note locally
+        note.note = noteState.newNote;
+        note.timestamp = new Date().toISOString(); // Update the timestamp
 
         delete editingNotes.value[differenceId][noteId];
       } catch (error) {
@@ -318,16 +328,20 @@ export default {
       }
 
       try {
+        console.log('accountId:', props.selectedAdAccountId);
+        console.log('campaignId:', differenceId);
+        console.log('noteId:', noteId);
+
         await api.post(
           '/api/delete-note',
           {
             accountId: props.selectedAdAccountId,
             campaignId: differenceId,
-            noteId
+            noteId: String(noteId) // Ensure noteId is sent as a string
           },
           {
             headers: { Authorization: `Bearer ${token}` },
-            withCredentials: true
+            withCredentials: true,
           }
         );
 
