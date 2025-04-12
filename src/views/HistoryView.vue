@@ -11,11 +11,11 @@
       <div class="metric-dropdowns">
         <label for="metric1">Metric 1:</label>
         <select v-model="selectedMetric1">
-          <option v-for="metric in metrics" :key="metric" :value="metric">{{ metric }}</option>
+          <option v-for="metric in metricLabels" :key="metric.key" :value="metric.key">{{ metric.label }}</option>
         </select>
         <label for="metric2">Metric 2:</label>
         <select v-model="selectedMetric2">
-          <option v-for="metric in metrics" :key="metric" :value="metric">{{ metric }}</option>
+          <option v-for="metric in metricLabels" :key="metric.key" :value="metric.key">{{ metric.label }}</option>
         </select>
       </div>
       <div class="time-interval-dropdown" style="text-align: right;">
@@ -72,6 +72,7 @@ import api from '../api'; // Corrected path
 import { useAuth } from '../composables/auth';
 import VueDatePicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
+import { metricMapping } from '../constants/constants'; // Import metricMapping
 
 export default {
   name: 'HistoryView',
@@ -97,9 +98,12 @@ export default {
     const dateRange = ref({ start: selectedStartDate.value, end: selectedEndDate.value });
     const loading = ref(true);
     const selectedTimeInterval = ref('daily');
-    const metrics = [
-      'actionClicks', 'adUnitClicks', 'approximateMemberReach', 'cardClicks', 'cardImpressions', 'clicks', 'commentLikes', 'comments', 'companyPageClicks', 'conversionValueInLocalCurrency', 'costInLocalCurrency', 'costInUsd', 'costPerQualifiedLead', 'documentCompletions', 'documentFirstQuartileCompletions', 'documentMidpointCompletions', 'documentThirdQuartileCompletions', 'downloadClicks', 'externalWebsiteConversions', 'externalWebsitePostClickConversions', 'externalWebsitePostViewConversions', 'follows', 'fullScreenPlays', 'headlineClicks', 'headlineImpressions', 'impressions', 'jobApplications', 'jobApplyClicks', 'landingPageClicks', 'leadGenerationMailContactInfoShares', 'leadGenerationMailInterestedClicks', 'likes', 'oneClickLeadFormOpens', 'oneClickLeads', 'opens', 'otherEngagements', 'pivotValues', 'postClickJobApplications', 'postClickJobApplyClicks', 'postClickRegistrations', 'postViewJobApplications', 'postViewJobApplyClicks', 'postViewRegistrations', 'qualifiedLeads', 'reactions', 'registrations', 'sends', 'shares', 'talentLeads', 'textUrlClicks', 'totalEngagements', 'validWorkEmailLeads', 'videoCompletions', 'videoFirstQuartileCompletions', 'videoMidpointCompletions', 'videoStarts', 'videoThirdQuartileCompletions', 'videoViews', 'viralCardClicks', 'viralCardImpressions', 'viralClicks', 'viralCommentLikes', 'viralComments', 'viralCompanyPageClicks', 'viralDocumentCompletions', 'viralDocumentFirstQuartileCompletions', 'viralDocumentMidpointCompletions', 'viralDocumentThirdQuartileCompletions', 'viralDownloadClicks', 'viralExternalWebsiteConversions', 'viralExternalWebsitePostClickConversions', 'viralExternalWebsitePostViewConversions', 'viralFollows', 'viralFullScreenPlays', 'viralImpressions', 'viralJobApplications', 'viralJobApplyClicks', 'viralLandingPageClicks', 'viralLikes', 'viralOneClickLeadFormOpens', 'viralOneClickLeads', 'viralOtherEngagements', 'viralPostClickJobApplications', 'viralPostClickJobApplyClicks', 'viralPostClickRegistrations', 'viralPostViewJobApplications', 'viralPostViewJobApplyClicks', 'viralPostViewRegistrations', 'viralReactions', 'viralRegistrations', 'viralShares', 'viralTotalEngagements', 'viralVideoCompletions', 'viralVideoFirstQuartileCompletions', 'viralVideoMidpointCompletions', 'viralVideoStarts', 'viralVideoThirdQuartileCompletions', 'viralVideoViews'
-    ];
+    const metrics = Object.keys(metricMapping); // Use keys from metricMapping
+    const metricLabels = metrics.map(key => ({
+      key,
+      label: metricMapping[key]
+    }));
+
     const selectedMetric1 = ref('clicks');
     const selectedMetric2 = ref('costInLocalCurrency');
     const campaignGroups = ref([]);
@@ -362,7 +366,8 @@ export default {
       updateActiveFilters, // Return the updateActiveFilters method
       searchText, // Return the searchText state
       updateSearchText, // Return the updateSearchText method
-      urnInfoMap // Return the urnInfoMap state
+      urnInfoMap, // Return the urnInfoMap state
+      metricLabels // Return the metricLabels
     };
   }
 }
