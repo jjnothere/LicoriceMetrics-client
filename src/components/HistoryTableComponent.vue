@@ -63,7 +63,13 @@
           <td class="campaign-notes">
             <!-- Add Note Section -->
             <div v-if="editingNotes[difference._id]?.addingNote" class="note-input">
-              <input v-model="editingNotes[difference._id].newNote" placeholder="Add a new note" @keyup.enter="saveNewNotePrompt(difference._id)" @keyup.esc="cancelAddNotePrompt(difference._id)" />
+              <input
+                :ref="el => addNoteRefs[difference._id] = el"
+                v-model="editingNotes[difference._id].newNote"
+                placeholder="Add a new note"
+                @keyup.enter="saveNewNotePrompt(difference._id)"
+                @keyup.esc="cancelAddNotePrompt(difference._id)"
+              />
               <button class="icon-button" @click="saveNewNotePrompt(difference._id)">
                 <i class="fas fa-save"></i>
               </button>
@@ -87,7 +93,17 @@
                 <small class="note-timestamp">{{ formatTimestamp(note.timestamp) }}</small>
                 <!-- Edit Note Input -->
                 <div v-if="editingNotes[difference._id]?.[note._id]?.isEditing" class="note-input">
-                  <input v-model="editingNotes[difference._id][note._id].newNote" @keyup.enter="saveNotePrompt(difference._id, note._id)" @keyup.esc="cancelEditMode(difference._id, note._id)" />
+                  <input
+                    :ref="el => {
+                      if (!editNoteRefs[difference._id]) {
+                        editNoteRefs[difference._id] = {};
+                      }
+                      editNoteRefs[difference._id][note._id] = el;
+                    }"
+                    v-model="editingNotes[difference._id][note._id].newNote"
+                    @keyup.enter="saveNotePrompt(difference._id, note._id)"
+                    @keyup.esc="cancelEditMode(difference._id, note._id)"
+                  />
                   <button class="icon-button" @click="saveNotePrompt(difference._id, note._id)">
                     <i class="fas fa-save"></i>
                   </button>
@@ -118,7 +134,17 @@
                 </small>
                 <!-- Edit Note Input -->
                 <div v-if="editingNotes[difference._id]?.[difference.notes[difference.notes.length - 1]._id]?.isEditing" class="note-input">
-                  <input v-model="editingNotes[difference._id][difference.notes[difference.notes.length - 1]._id].newNote" @keyup.enter="saveNotePrompt(difference._id, difference.notes[difference.notes.length - 1]._id)" @keyup.esc="cancelEditMode(difference._id, difference.notes[difference.notes.length - 1]._id)" />
+                  <input
+                    :ref="el => {
+                      if (!editNoteRefs[difference._id]) {
+                        editNoteRefs[difference._id] = {};
+                      }
+                      editNoteRefs[difference._id][difference.notes[difference.notes.length - 1]._id] = el;
+                    }"
+                    v-model="editingNotes[difference._id][difference.notes[difference.notes.length - 1]._id].newNote"
+                    @keyup.enter="saveNotePrompt(difference._id, difference.notes[difference.notes.length - 1]._id)"
+                    @keyup.esc="cancelEditMode(difference._id, difference.notes[difference.notes.length - 1]._id)"
+                  />
                   <button class="icon-button" @click="saveNotePrompt(difference._id, difference.notes[difference.notes.length - 1]._id)">
                     <i class="fas fa-save"></i>
                   </button>
@@ -151,7 +177,7 @@
 </template>
 
 <script>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 import ObjectID from 'bson-objectid';
 import api from '../api';
 import { colorMapping, keyMapping as keyMappingConst } from '../constants/constants';
@@ -171,6 +197,8 @@ export default {
     const differences = ref([]);
     const editingNotes = ref({}); // Separate state for managing note edits
     const keyMapping = ref(keyMappingConst);
+    const addNoteRefs = ref({});
+    const editNoteRefs = ref({});
 
     // Ensure differences are reactive and initialize necessary properties
     const initializeDifferences = (newDifferences) => {
@@ -190,8 +218,10 @@ export default {
       { immediate: true }
     );
 
-    const enableAddNotePrompt = (id) => {
+    const enableAddNotePrompt = async (id) => {
       editingNotes.value[id] = { addingNote: true, newNote: '' };
+      await nextTick();
+      addNoteRefs.value[id]?.focus();
     };
 
     const cancelAddNotePrompt = (id) => {
@@ -246,7 +276,7 @@ export default {
       }
     };
 
-    const enableEditMode = (differenceId, noteId) => {
+    const enableEditMode = async (differenceId, noteId) => {
       if (!editingNotes.value[differenceId]) {
         editingNotes.value[differenceId] = {};
       }
@@ -255,6 +285,8 @@ export default {
         const note = difference.notes.find((n) => n._id === noteId);
         if (note) {
           editingNotes.value[differenceId][noteId] = { isEditing: true, newNote: note.note };
+          await nextTick();
+          editNoteRefs.value[differenceId]?.[noteId]?.focus();
         }
       }
     };
@@ -550,7 +582,9 @@ export default {
       saveNotePrompt,
       deleteNotePrompt,
       editingNotes, // Expose editingNotes for template usage
-      toggleNotes // Ensure toggleNotes is returned
+      toggleNotes, // Ensure toggleNotes is returned
+      addNoteRefs,
+      editNoteRefs
     };
   }
 };
