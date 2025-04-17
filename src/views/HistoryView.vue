@@ -26,16 +26,22 @@
           <option value="quarterly">Quarterly</option>
         </select>
       </div>
-      <LineChartComponent
-        :selectedAdAccountId="selectedAdAccountId"
-        :selectedTimeInterval="selectedTimeInterval"
-        :chartStartDate="dateRange.start"
-        :chartEndDate="dateRange.end"
-        :metric1="selectedMetric1"
-        :metric2="selectedMetric2"
-        :selectedCampaignIds="selectedCampaignIds"
-        :differences="filteredDifferences"
-      />
+      <div
+        class="sticky-chart-container"
+        :class="{ 'scrolled': isStickyScrolled }"
+        ref="stickyContainer"
+      >
+        <LineChartComponent
+          :selectedAdAccountId="selectedAdAccountId"
+          :selectedTimeInterval="selectedTimeInterval"
+          :chartStartDate="dateRange.start"
+          :chartEndDate="dateRange.end"
+          :metric1="selectedMetric1"
+          :metric2="selectedMetric2"
+          :selectedCampaignIds="selectedCampaignIds"
+          :differences="filteredDifferences"
+        />
+      </div>
       <FilterComponent
         :selectedCampaignIds="selectedCampaignIds"
         :activeFilters="activeFilters"
@@ -338,6 +344,19 @@ export default {
       searchText.value = text;
     };
 
+    const isStickyScrolled = ref(false);
+    const stickyContainer = ref(null);
+
+    const handleScroll = () => {
+      if (stickyContainer.value) {
+        isStickyScrolled.value = window.scrollY > stickyContainer.value.offsetTop;
+      }
+    };
+
+    onMounted(() => {
+      window.addEventListener('scroll', handleScroll);
+    });
+
     return {
       selectedStartDate,
       selectedEndDate,
@@ -367,7 +386,9 @@ export default {
       searchText, // Return the searchText state
       updateSearchText, // Return the updateSearchText method
       urnInfoMap, // Return the urnInfoMap state
-      metricLabels // Return the metricLabels
+      metricLabels, // Return the metricLabels
+      isStickyScrolled,
+      stickyContainer,
     };
   }
 }
@@ -435,5 +456,18 @@ export default {
 
 .metric-dropdowns label {
   margin-right: 10px;
+}
+
+.sticky-chart-container {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: white; /* Ensure the chart has a background */
+  padding: 10px 0; /* Optional padding */
+  transition: box-shadow 0.3s ease;
+}
+
+.sticky-chart-container.scrolled {
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1); /* Shadow when scrolled */
 }
 </style>
