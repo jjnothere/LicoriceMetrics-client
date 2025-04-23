@@ -224,7 +224,7 @@ export default {
 
         return isWithinDateRange && isSelectedCampaign && typeFilterCondition;
       }).map(diff => {
-        if (diff.changes && diff.changes.creatives) {
+        if (diff.changes && Array.isArray(diff.changes.creatives)) {
           diff.changes.creatives = diff.changes.creatives.map(creative => {
             return {
               ...creative,

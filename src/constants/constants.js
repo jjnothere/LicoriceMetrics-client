@@ -59,7 +59,8 @@ export const keyMapping = {
   type: 'Campaign Type',
   unitCost: 'Unit Cost',
   version: 'Version',
-  creatives: 'Creatives'
+  creatives: 'Creatives',
+  campaignAdded: 'Campaign Added'
 }
 
 export const metricMapping = {
