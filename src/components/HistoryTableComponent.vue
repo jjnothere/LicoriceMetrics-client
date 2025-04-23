@@ -27,7 +27,14 @@
               <div v-if="difference.expandedChanges?.[changeKey]" class="change-details">
                 <div v-for="(entry) in getFormattedChanges(changeValue, difference.urnInfoMap)" :key="difference._id + '-' + changeKey + '-' + entry.key">
                   <span class="nested-key">
-                    {{ entry.key }}<template v-if="entry.key !== ''">:<br /></template>
+                    {{
+                      entry.key
+                        .replace(/([a-z])([A-Z])/g, '$1 $2')
+                        .split(' ')
+                        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                        .join(' ')
+                        .replace(/\b(Include|Exclude)\b/g, '$1:')
+                    }}<template v-if="entry.key !== ''">:<br /></template>
                   </span>
                   
                   <span class="nested-value">
@@ -53,7 +60,7 @@
                         </ul>
                       </template>
                       <template v-else>
-                        {{ entry.value }}
+                       {{ entry.value }}
                       </template>
                     </template>
                   </span>
