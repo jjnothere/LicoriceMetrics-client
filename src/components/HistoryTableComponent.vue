@@ -26,8 +26,10 @@
               </div>
               <div v-if="difference.expandedChanges?.[changeKey]" class="change-details">
                 <div v-for="(entry) in getFormattedChanges(changeValue, difference.urnInfoMap)" :key="difference._id + '-' + changeKey + '-' + entry.key">
-                  <span class="nested-key">{{ entry.key }}:</span>
-                  <br />
+                  <span class="nested-key">
+                    {{ entry.key }}<template v-if="entry.key !== ''">:<br /></template>
+                  </span>
+                  
                   <span class="nested-value">
                     <!-- If runSchedule and value is a string, format as a date -->
                     <template v-if="changeKey === 'runSchedule'">
@@ -521,6 +523,12 @@ export default {
       return value;
     };
 
+    const formatRunSchedule = (timestamp) => {
+      if (!timestamp) return 'Invalid timestamp';
+      const date = new Date(parseFloat(timestamp));
+      return date.toLocaleString(); // Converts to "MM/DD/YYYY, HH:MM:SS"
+    };
+
     const capitalizeFirstLetter = (string) => {
       return string.charAt(0).toUpperCase() + string.slice(1);
     };
@@ -584,7 +592,8 @@ export default {
       editingNotes, // Expose editingNotes for template usage
       toggleNotes, // Ensure toggleNotes is returned
       addNoteRefs,
-      editNoteRefs
+      editNoteRefs,
+      formatRunSchedule
     };
   }
 };
