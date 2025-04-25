@@ -31,16 +31,22 @@
         :class="{ 'scrolled': isStickyScrolled }"
         ref="stickyContainer"
       >
-        <LineChartComponent
-          :selectedAdAccountId="selectedAdAccountId"
-          :selectedTimeInterval="selectedTimeInterval"
-          :chartStartDate="dateRange.start"
-          :chartEndDate="dateRange.end"
-          :metric1="selectedMetric1"
-          :metric2="selectedMetric2"
-          :selectedCampaignIds="selectedCampaignIds"
-          :differences="filteredDifferences"
-        />
+        <button class="toggle-chart-button" @click="toggleChart">
+          {{ isChartExpanded ? 'Collapse Chart' : 'Expand Chart' }}
+          <i :class="isChartExpanded ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+        </button>
+        <div v-if="isChartExpanded" class="chart-content">
+          <LineChartComponent
+            :selectedAdAccountId="selectedAdAccountId"
+            :selectedTimeInterval="selectedTimeInterval"
+            :chartStartDate="dateRange.start"
+            :chartEndDate="dateRange.end"
+            :metric1="selectedMetric1"
+            :metric2="selectedMetric2"
+            :selectedCampaignIds="selectedCampaignIds"
+            :differences="filteredDifferences"
+          />
+        </div>
       </div>
       <FilterComponent
         :selectedCampaignIds="selectedCampaignIds"
@@ -357,6 +363,12 @@ export default {
       window.addEventListener('scroll', handleScroll);
     });
 
+    const isChartExpanded = ref(true);
+
+    const toggleChart = () => {
+      isChartExpanded.value = !isChartExpanded.value;
+    };
+
     return {
       selectedStartDate,
       selectedEndDate,
@@ -389,6 +401,8 @@ export default {
       metricLabels, // Return the metricLabels
       isStickyScrolled,
       stickyContainer,
+      isChartExpanded,
+      toggleChart,
     };
   }
 }
@@ -463,11 +477,5 @@ export default {
   top: 0;
   z-index: 10;
   background-color: white; /* Ensure the chart has a background */
-  padding: 10px 0; /* Optional padding */
-  transition: box-shadow 0.3s ease;
-}
-
-.sticky-chart-container.scrolled {
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1); /* Shadow when scrolled */
 }
 </style>
