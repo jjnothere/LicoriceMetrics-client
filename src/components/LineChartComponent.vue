@@ -239,26 +239,26 @@ export default {
             {
               label: props.metric1,
               data: metric1Data,
-              borderColor: '#4caf50',
+              borderColor: '#6A9A1F', // Earthy Green
               fill: false,
               pointBackgroundColor: labels.map((label) =>
-                getCategoryColors(label).length > 1 ? 'transparent' : getCategoryColors(label)[0] // Use single color if only one change
+                getCategoryColors(label).length > 1 ? 'transparent' : getCategoryColors(label)[0]
               ),
               pointRadius: labels.map((label) =>
-                changeDates.includes(label) ? 3 : 0 // Only show dots on change dates
+                changeDates.includes(label) ? 3 : 0
               ),
               borderWidth: 2
             },
             {
               label: props.metric2,
               data: metric2Data,
-              borderColor: '#f44336',
+              borderColor: '#D32F2F', // Warm Red
               fill: false,
               pointBackgroundColor: labels.map((label) =>
-                getCategoryColors(label).length > 1 ? 'transparent' : getCategoryColors(label)[0] // Use single color if only one change
+                getCategoryColors(label).length > 1 ? 'transparent' : getCategoryColors(label)[0]
               ),
               pointRadius: labels.map((label) =>
-                changeDates.includes(label) ? 3 : 0 // Only show dots on change dates
+                changeDates.includes(label) ? 3 : 0
               ),
               borderWidth: 2
             }

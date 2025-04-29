@@ -1,35 +1,35 @@
 // Color mappings for displaying changes
-export  const colorMapping = {
+export const colorMapping = {
   // Green - Budgets, bids, cost caps, spend type (daily/lifetime)
-  'Daily Budget': '#32CD32', // Lime Green
-  'Unit Cost': '#32CD32', // Lime Green
-  'Cost Type': '#32CD32', // Lime Green
-  'Pacing Strategy': '#32CD32', // Lime Green
+  'Daily Budget': '#6A9A1F', // Earthy Green
+  'Unit Cost': '#6A9A1F', // Earthy Green
+  'Cost Type': '#6A9A1F', // Earthy Green
+  'Pacing Strategy': '#6A9A1F', // Earthy Green
 
   // Yellow - Audience targeting
-  'Targeting Criteria': '#FFD700', // Gold
-  'Audience Expansion': '#FFD700', // Gold
+  'Targeting Criteria': '#F4C430', // Warm Yellow
+  'Audience Expansion': '#F4C430', // Warm Yellow
   
   // Purple - Objective, location, and language
-  'Objective Type': '#800080', // Purple
-  'Location': '#800080', // Purple
-  'Language': '#800080', // Purple
-  Locale: '#800080', // Gold
+  'Objective Type': '#8A2BE2', // Deep Purple
+  'Location': '#8A2BE2', // Deep Purple
+  'Language': '#8A2BE2', // Deep Purple
+  Locale: '#8A2BE2', // Deep Purple
 
   // Light Blue - Ad type
-  Format: '#87CEFA', // Light Sky Blue
-  'Ad Type': '#87CEFA', // Light Sky Blue
-  'Campaign Type': '#87CEFA', // Light Sky Blue
+  Format: '#4682B4', // Steel Blue
+  'Ad Type': '#4682B4', // Steel Blue
+  'Campaign Type': '#4682B4', // Steel Blue
 
   // Red - Status/name changes (campaign group & campaign levels only)
-  Status: '#FF4500', // Orange Red
-  Name: '#FF4500', // Orange Red
-  'Campaign Group': '#FF4500', // Orange Red
+  Status: '#D32F2F', // Crimson Red
+  Name: '#D32F2F', // Crimson Red
+  'Campaign Group': '#D32F2F', // Crimson Red
 
   // Blue - Creative (statuses, names, rotation)
-  Creatives: '#1E90FF', // Dodger Blue
-  'Creative Selection': '#1E90FF', // Dodger Blue
-  'Creative Rotation': '#1E90FF', // Dodger Blue
+  Creatives: '#1E88E5', // Bright Blue
+  'Creative Selection': '#1E88E5', // Bright Blue
+  'Creative Rotation': '#1E88E5', // Bright Blue
 }
 
 // Key mappings for differences

@@ -2,12 +2,12 @@
   <div class="filter-container">
     <div class="filter-buttons">
       <button class="filter-button" :class="{ active: isActive('all') }" @click="clearAll" style="--filter-color: black;">All Changes</button>
-      <button class="filter-button" :class="{ active: isActive('budget') }" @click="toggleBudget" style="--filter-color: #32CD32;">Budget/Bids</button>
-      <button class="filter-button" :class="{ active: isActive('audience') }" @click="toggleAudience" style="--filter-color: #FFD700;">Audience</button>
-      <button class="filter-button" :class="{ active: isActive('objLocLang') }" @click="toggleObjLocLang" style="--filter-color: #800080;">Obj/Loc/Lang</button>
-      <button class="filter-button" :class="{ active: isActive('adType') }" @click="toggleAdType" style="--filter-color: #87CEFA;">Ad Type</button>
-      <button class="filter-button" :class="{ active: isActive('nameStatus') }" @click="toggleNameStatus" style="--filter-color: #FF4500;">Status/Name</button>
-      <button class="filter-button" :class="{ active: isActive('creatives') }" @click="toggleCreatives" style="--filter-color: #1E90FF;">Creatives</button>
+      <button class="filter-button" :class="{ active: isActive('budget') }" @click="toggleBudget" style="--filter-color: #6A9A1F;">Budget/Bids</button>
+      <button class="filter-button" :class="{ active: isActive('audience') }" @click="toggleAudience" style="--filter-color: #F4C430;">Audience</button>
+      <button class="filter-button" :class="{ active: isActive('objLocLang') }" @click="toggleObjLocLang" style="--filter-color: #8A2BE2;">Obj/Loc/Lang</button>
+      <button class="filter-button" :class="{ active: isActive('adType') }" @click="toggleAdType" style="--filter-color: #4682B4;">Ad Type</button>
+      <button class="filter-button" :class="{ active: isActive('nameStatus') }" @click="toggleNameStatus" style="--filter-color: #D32F2F;">Status/Name</button>
+      <button class="filter-button" :class="{ active: isActive('creatives') }" @click="toggleCreatives" style="--filter-color: #1E88E5;">Creatives</button>
       <button class="filter-button" :class="{ active: isActive('select') }" @click="openModal" style="--filter-color: black;">Select</button>
     </div>
     <input
