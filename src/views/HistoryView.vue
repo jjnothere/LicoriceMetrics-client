@@ -450,25 +450,39 @@ export default {
   color: #1C1B21;
   margin-top: 20px;
 }
-
-.date-picker-container {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 20px;
+.dp__main {
+  width: fit-content
 }
 
-.date-picker-container label {
-  margin-right: 10px;
-}
-
+.date-picker-container,
 .metric-dropdowns {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 5px;
+  gap: 5px;
 }
 
+.date-picker-container label,
 .metric-dropdowns label {
   margin-right: 10px;
+}
+
+@media (max-width: 768px) {
+  .date-picker-container,
+  .metric-dropdowns {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .date-picker-container label,
+  .metric-dropdowns label {
+    margin-right: 0;
+    margin-bottom: 5px;
+  }
+
+  .date-picker-container > *:not(:last-child),
+  .metric-dropdowns > *:not(:last-child) {
+    margin-bottom: 10px;
+  }
 }
 
 .sticky-chart-container {

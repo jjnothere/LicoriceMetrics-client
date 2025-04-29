@@ -114,6 +114,7 @@ export default {
 <style scoped>
 .filter-container {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: 10px;
@@ -121,7 +122,8 @@ export default {
 
 .filter-buttons {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .filter-button {
@@ -134,7 +136,6 @@ export default {
   transition: background-color 0.3s, color 0.3s;
   font-size: 16px;
   font-weight: bold;
-  margin-right: 10px;
 }
 
 .filter-button.active {
@@ -155,5 +156,30 @@ export default {
   font-size: 14px;
   width: 200px;
   margin-left: auto;
+}
+
+@media (max-width: 1179px) {
+  .filter-container {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .filter-buttons {
+    gap: 15px;
+    width: 100%;
+  }
+
+  .filter-button {
+    font-size: 14px;
+    padding: 5px;
+    flex: 1 1 calc(33.33% - 10px); /* Three buttons per row */
+    max-width: calc(33.33% - 10px);
+  }
+
+  .search-input {
+    margin-left: 0;
+    margin-top: 10px; /* Add spacing below the buttons */
+  }
 }
 </style>
