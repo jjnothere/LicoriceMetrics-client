@@ -17,14 +17,14 @@ export const colorMapping = {
   Locale: '#8A2BE2', // Deep Purple
 
   // Light Blue - Ad type
-  Format: '#5DADE2', // Lighter Sky Blue
-  'Ad Type': '#5DADE2', // Lighter Sky Blue
-  'Campaign Type': '#5DADE2', // Lighter Sky Blue
+  Format: '#154360', // Lighter Sky Blue
+  'Ad Type': '#154360', // Lighter Sky Blue
+  'Campaign Type': '#154360', // Lighter Sky Blue
 
   // Darker Blue - Creative (statuses, names, rotation)
-  Creatives: '#154360', // Dark Navy Blue
-  'Creative Selection': '#154360', // Dark Navy Blue
-  'Creative Rotation': '#154360', // Dark Navy Blue
+  Creatives: '#5DADE2', // Dark Navy Blue
+  'Creative Selection': '#5DADE2', // Dark Navy Blue
+  'Creative Rotation': '#5DADE2', // Dark Navy Blue
 
   // Red - Status/name changes (campaign group & campaign levels only)
   Status: '#D32F2F', // Crimson Red
