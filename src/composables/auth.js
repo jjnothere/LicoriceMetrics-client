@@ -31,13 +31,28 @@ const getTokenFromCookies = () => {
   return cookie ? cookie.split('=')[1] : null;
 };
 
+const refreshAccessToken = async () => {
+  try {
+    const response = await api.post('/api/refresh-token', {}, { withCredentials: true });
+    const newAccessToken = response.data.accessToken;
+
+    if (newAccessToken) {
+      document.cookie = `accessToken=${newAccessToken}; Path=/; Secure; HttpOnly`;
+      return newAccessToken;
+    }
+  } catch (error) {
+    console.error('Error refreshing access token:', error);
+    return null;
+  }
+};
+
 export function useAuth() {
   const setAuth = (isAuthenticated) => {
     isLoggedIn.value = isAuthenticated;
   };
 
   const checkAuthStatus = async () => {
-    const token = getTokenFromCookies();
+    let token = getTokenFromCookies();
 
     if (token && !isTokenExpired(token)) {
       try {
@@ -52,6 +67,14 @@ export function useAuth() {
       } catch (error) {
         console.error('Error retrieving user profile:', error);
         document.cookie = 'accessToken=; Max-Age=0';
+        setAuth(false);
+      }
+    } else if (token && isTokenExpired(token)) {
+      // Attempt to refresh the token
+      const newToken = await refreshAccessToken();
+      if (newToken) {
+        await checkAuthStatus(); // Retry authentication with the new token
+      } else {
         setAuth(false);
       }
     } else {

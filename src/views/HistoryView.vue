@@ -273,7 +273,6 @@ export default {
     onMounted(initializeData);
 
     watch(selectedAdAccountId, async (newAdAccountId) => {
-      console.log("🐒 ~ selectedAdAccountId:", selectedAdAccountId)
       if (newAdAccountId) {
         await checkForChanges();
         await fetchDifferences();
