@@ -4,9 +4,23 @@
     <div v-else>
       <div class="date-picker-container">
         <label for="start-date">Start Date:</label>
-        <VueDatePicker v-model="selectedStartDate" :max-date="selectedEndDate" />
+        <VueDatePicker 
+          v-model="selectedStartDate" 
+          :max-date="selectedEndDate" 
+          type="date" 
+          format="MM/dd/yyyy" 
+          :clearable="false"
+          :enable-time-picker="false"
+        />
         <label for="end-date">End Date:</label>
-        <VueDatePicker v-model="selectedEndDate" :min-date="selectedStartDate" />
+        <VueDatePicker 
+          v-model="selectedEndDate" 
+          :min-date="selectedStartDate" 
+          type="date" 
+          format="MM/dd/yyyy" 
+          :clearable="false"
+          :enable-time-picker="false"
+        />
       </div>
       <div class="metric-dropdowns">
         <label for="metric1">Metric 1:</label>
