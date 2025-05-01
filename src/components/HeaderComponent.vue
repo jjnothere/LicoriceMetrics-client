@@ -1,27 +1,47 @@
 <template>
   <div class="header">
-    <header>
+    <header class="header-content">
       <h1 class="selected-ad-account">
-        <span @click="toggleDropdown">{{ selectedAdAccount?.name || 'Select Ad Account' }}</span>
+        <span @click="toggleDropdown">
+          {{ selectedAdAccount?.name || 'Select Ad Account' }}
+        </span>
         <span class="caret">&#9662;</span>
-        <router-link v-if="isProfilePage" to="/history" class="home-link">Home</router-link>
+        <router-link
+          v-if="isProfilePage"
+          to="/history"
+          class="home-link"
+        >
+          Home
+        </router-link>
       </h1>
-      <div v-if="showDropdown" class="dropdown">
-        <ul>
-          <li v-for="account in adAccounts" :key="account.id" @click="selectAdAccount(account)">
-            {{ account.name }}
-          </li>
-        </ul>
-      </div>
+
       <nav class="nav-bar">
-        <div class="nav-user-actions">
-          <router-link to="/profile" class="user-link">Profile</router-link>
-          <span class="separator">|</span>
-          <div v-if="isLoggedInComputed" class="user-link logout-link" @click="logout">Logout</div>
-          <router-link v-else to="/" class="user-link">Login / Signup</router-link>
+        <router-link to="/profile" class="user-link">Profile</router-link>
+        <span class="separator">|</span>
+        <div
+          v-if="isLoggedInComputed"
+          class="user-link logout-link"
+          @click="logout"
+        >
+          Logout
         </div>
+        <router-link v-else to="/" class="user-link">
+          Login / Signup
+        </router-link>
       </nav>
     </header>
+
+    <div v-if="showDropdown" class="dropdown">
+      <ul>
+        <li
+          v-for="account in adAccounts"
+          :key="account.id"
+          @click="selectAdAccount(account)"
+        >
+          {{ account.name }}
+        </li>
+      </ul>
+    </div>
   </div>
 </template>
 
@@ -145,18 +165,9 @@ watch(isLoggedIn, (newIsLoggedIn) => {
 </script>
 
 <style scoped>
-/* Your existing styles remain the same */
-header {
-    display: flex;
-}
-
 .header {
-  display: flex;
-  flex-direction: column;
-  padding: 5px 20px;
-  border-radius: 8px;
   position: relative;
-  padding: 15px;
+  padding: 15px 20px;
   background-color: #F9F9F8;
   border-radius: 20px;
 }
@@ -165,119 +176,123 @@ header {
 .header::after {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   border-radius: 20px;
   pointer-events: none;
 }
-
 .header::before {
+  inset: 5px;
   border: 3px solid #BEBDBF;
-  top: 5px;
-  left: 5px;
-  right: 5px;
-  bottom: 5px;
 }
-
 .header::after {
   border: 3px solid #1C1B21;
 }
 
-.selected-ad-account {
-  font-size: 2em;
-  color: #1C1B21;
+/* flex container for title + nav */
+.header-content {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  margin: 0 0;
+  flex-wrap: wrap;
 }
 
+/* Ad account title */
+.selected-ad-account {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  font-size: 2em;
+  color: #1C1B21;
+  margin: 0;
+}
 .selected-ad-account span {
   cursor: pointer;
 }
-
 .caret {
-  margin-left: 10px;
+  margin-left: 0.5rem;
   font-size: 0.8em;
 }
 
+/* “Home” pill */
 .home-link {
+  margin-left: 1rem;
   padding: 5px 10px;
-  border: 2px solid #61bca8ff;
-  text-decoration: none;
-  font-weight: bold;
-  color: #1C1B21;
-  background-color: #f9f9f9;
+  border: 2px solid #61bca8;
   border-radius: 20px;
-  margin-left: 10px;
-  font-size: .5em;
+  font-size: 0.75em;
+  font-weight: bold;
+  text-decoration: none;
+  color: #1C1B21;
 }
-
 .home-link:hover {
   background-color: #e0e0e0;
 }
 
+/* Nav on the right */
+.nav-bar {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+.user-link {
+  font-size: 0.9em;
+  font-weight: bold;
+  color: #1C1B21;
+  text-decoration: none;
+  cursor: pointer;
+}
+.user-link:hover {
+  color: #61bca8;
+  text-decoration: underline;
+}
+.separator {
+  margin: 0 0.5rem;
+  color: #888;
+  font-weight: bold;
+}
+.logout-link {
+  /* no absolute positioning now */
+}
+
+/* Dropdown */
 .dropdown {
-  margin-top: 10px;
-  background-color: #fff;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: #fff;
   border: 1px solid #ccc;
   border-radius: 5px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  position: absolute;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
   z-index: 1000;
+  margin-top: 0.5rem;
 }
-
 .dropdown ul {
   list-style: none;
-  padding: 0;
   margin: 0;
+  padding: 0;
 }
-
 .dropdown li {
   padding: 10px;
   cursor: pointer;
 }
-
 .dropdown li:hover {
-  background-color: #f0f0f0;
+  background: #f0f0f0;
 }
 
-.nav-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 10px;
-}
-
-.nav-user-actions {
-  position: absolute;
-  top: 15px;
-  right: 20px;
-  display: flex;
-}
-
-.user-link {
-  text-decoration: none;
-  font-weight: bold;
-  color: #1C1B21;
-  font-size: 0.9em;
-  cursor: pointer;
-}
-
-.user-link:hover {
-  text-decoration: underline;
-  color: #61bca8ff;
-}
-
-.separator {
-  margin: 0 10px;
-  font-size: 0.9em;
-  color: #888;
-  font-weight: bold;
-}
-
-.logout-link {
-  cursor: pointer;
+/* Mobile: stack title + nav */
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  .selected-ad-account {
+    font-size: 1.5em;
+  }
+  .nav-bar {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 0.5rem;
+  }
 }
 </style>

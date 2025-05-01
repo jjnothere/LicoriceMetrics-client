@@ -2,44 +2,64 @@
   <div class="history-view">
     <div v-if="loading" class="loading-indicator">Loading...</div>
     <div v-else>
-      <div class="date-picker-container">
-        <label for="start-date">Start Date:</label>
-        <VueDatePicker 
-          v-model="selectedStartDate" 
-          :max-date="selectedEndDate" 
-          type="date" 
-          format="MM/dd/yyyy" 
-          :clearable="false"
-          :enable-time-picker="false"
-        />
-        <label for="end-date">End Date:</label>
-        <VueDatePicker 
-          v-model="selectedEndDate" 
-          :min-date="selectedStartDate" 
-          type="date" 
-          format="MM/dd/yyyy" 
-          :clearable="false"
-          :enable-time-picker="false"
-        />
+      <!-- controls grid -->
+      <div class="controls-grid">
+        <div class="control-group control-start-date">
+          <label for="start-date">Start Date</label>
+          <VueDatePicker
+            id="start-date"
+            v-model="selectedStartDate"
+            :max-date="selectedEndDate"
+            type="date"
+            format="MM/dd/yyyy"
+            :clearable="false"
+            :enable-time-picker="false"
+          />
+        </div>
+        <div class="control-group control-end-date">
+          <label for="end-date">End Date</label>
+          <VueDatePicker
+            id="end-date"
+            v-model="selectedEndDate"
+            :min-date="selectedStartDate"
+            type="date"
+            format="MM/dd/yyyy"
+            :clearable="false"
+            :enable-time-picker="false"
+          />
+        </div>
+        <div class="control-group control-interval">
+          <label for="interval">Interval</label>
+          <select id="interval" v-model="selectedTimeInterval">
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+            <option value="quarterly">Quarterly</option>
+          </select>
+        </div>
+        <div class="control-group control-metric1">
+          <label for="metric1">Metric 1</label>
+          <select id="metric1" v-model="selectedMetric1">
+            <option
+              v-for="metric in metricLabels"
+              :key="metric.key"
+              :value="metric.key"
+            >{{ metric.label }}</option>
+          </select>
+        </div>
+        <div class="control-group control-metric2">
+          <label for="metric2">Metric 2</label>
+          <select id="metric2" v-model="selectedMetric2">
+            <option
+              v-for="metric in metricLabels"
+              :key="metric.key"
+              :value="metric.key"
+            >{{ metric.label }}</option>
+          </select>
+        </div>
       </div>
-      <div class="metric-dropdowns">
-        <label for="metric1">Metric 1:</label>
-        <select v-model="selectedMetric1">
-          <option v-for="metric in metricLabels" :key="metric.key" :value="metric.key">{{ metric.label }}</option>
-        </select>
-        <label for="metric2">Metric 2:</label>
-        <select v-model="selectedMetric2">
-          <option v-for="metric in metricLabels" :key="metric.key" :value="metric.key">{{ metric.label }}</option>
-        </select>
-      </div>
-      <div class="time-interval-dropdown" style="text-align: right;">
-        <select v-model="selectedTimeInterval">
-          <option value="daily">Daily</option>
-          <option value="weekly">Weekly</option>
-          <option value="monthly">Monthly</option>
-          <option value="quarterly">Quarterly</option>
-        </select>
-      </div>
+
+      <!-- chart + rest of page -->
       <div
         class="sticky-chart-container"
         :class="{ 'scrolled': isStickyScrolled }"
@@ -62,6 +82,7 @@
           />
         </div>
       </div>
+
       <FilterComponent
         :selectedCampaignIds="selectedCampaignIds"
         :activeFilters="activeFilters"
@@ -423,36 +444,23 @@ export default {
 <style scoped>
 .history-view {
   margin-top: 10px;
-  display: flex;
-  flex-direction: column;
-  padding: 5px 20px;
-  border-radius: 8px;
-  position: relative;
-  padding: 15px;
+  padding: 15px 20px;
   background-color: #F9F9F8;
   border-radius: 20px;
+  position: relative;
 }
-
 .history-view::before,
 .history-view::after {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   border-radius: 20px;
   pointer-events: none;
 }
-
 .history-view::before {
+  inset: 5px;
   border: 3px solid #BEBDBF;
-  top: 5px;
-  left: 5px;
-  right: 5px;
-  bottom: 5px;
 }
-
 .history-view::after {
   border: 3px solid #1C1B21;
 }
@@ -461,47 +469,91 @@ export default {
   text-align: center;
   font-size: 1.5em;
   color: #1C1B21;
-  margin-top: 20px;
-}
-.dp__main {
-  width: fit-content
+  margin: 20px 0;
 }
 
-.date-picker-container,
-.metric-dropdowns {
-  display: flex;
-  margin-bottom: 5px;
-  gap: 5px;
+/* -------- controls grid -------- */
+.controls-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  grid-template-areas:
+    "start-date end-date interval"
+    "metric1    metric2    interval";
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  align-items: flex-end;
 }
 
-.date-picker-container label,
-.metric-dropdowns label {
-  margin-right: 10px;
-}
+.control-start-date  { grid-area: start-date; }
+.control-end-date    { grid-area: end-date; }
+.control-metric1     { grid-area: metric1; }
+.control-metric2     { grid-area: metric2; }
+.control-interval    { grid-area: interval; }
 
+/* stack everything on mobile, interval last */
 @media (max-width: 768px) {
-  .date-picker-container,
-  .metric-dropdowns {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .date-picker-container label,
-  .metric-dropdowns label {
-    margin-right: 0;
-    margin-bottom: 5px;
-  }
-
-  .date-picker-container > *:not(:last-child),
-  .metric-dropdowns > *:not(:last-child) {
-    margin-bottom: 10px;
+  .controls-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "start-date"
+      "end-date"
+      "metric1"
+      "metric2"
+      "interval";
   }
 }
 
+/* label + input/select styling */
+.control-group label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+/* remove wrapper border, style only inner input */
+.control-group .dp__main {
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+/* style the actual date-picker <input> */
+.control-group .dp__main input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+/* selects match same look */
+.control-group select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+  outline: none;
+  box-sizing: border-box;
+}
+
+/* subtle focus state */
+.control-group select:focus,
+.control-group .dp__main input:focus {
+  border-color: #888;
+  box-shadow: 0 0 0 2px rgba(100,100,100,0.2);
+}
+
+/* chart container (unchanged) */
 .sticky-chart-container {
   position: sticky;
   top: 0;
   z-index: 10;
-  background-color: white; /* Ensure the chart has a background */
+  background-color: white;
 }
 </style>
