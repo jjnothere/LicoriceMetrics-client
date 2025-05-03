@@ -174,24 +174,31 @@ export default {
         console.error('Error fetching presets:', error);
       }
     },
-    applyPreset() {
-      const preset = this.presets.find(p => p.name === this.selectedPreset);
-      if (preset) {
-        this.$emit('updateActiveFilters', preset.filters); // Update active filters
-        this.searchText = preset.searchText;
-        this.selectedCampaigns = preset.selectedCampaigns || []; // Apply selected campaigns
-        this.$emit('update:selectedCampaigns', this.selectedCampaigns); // Emit selected campaigns
-        this.$emit('campaignIdsEmitted', preset.selectedCampaignIds || []); // Emit selected campaign IDs
-        this.emitSearchText();
+    async applyPreset() {
+    const preset = this.presets.find(p => p.name === this.selectedPreset)
+    if (!preset) return
 
-        // Highlight the selected filters
-        preset.filters.forEach(filter => {
-          if (!this.activeFilters.includes(filter)) {
-            this.activeFilters.push(filter);
-          }
-        });
+    // 1) turn _off_ every currently-active (non-“all”) filter
+    this.activeFilters.forEach(f => {
+      if (f !== 'all') {
+        this.updateActiveFilters(f, false)
       }
-    }
+    })
+
+    // 2) turn _on_ only the filters in this preset
+    preset.filters.forEach(f => {
+      this.updateActiveFilters(f, true)
+    })
+
+    // 3) restore search-text
+    this.searchText = preset.searchText || ''
+    this.emitSearchText()
+
+    // 4) restore campaign selection
+    this.selectedCampaigns = preset.selectedCampaigns || []
+    this.$emit('update:selectedCampaigns', this.selectedCampaigns)
+    this.$emit('campaignIdsEmitted', preset.selectedCampaignIds || [])
+  },
   },
   mounted() {
     this.fetchPresets(); // Fetch presets when the component is mounted
@@ -297,36 +304,54 @@ export default {
   border-radius: 10px;
   width: 300px;
   text-align: center;
+  box-sizing: border-box; /* Ensure padding is included in the width */
 }
 
 .preset-name-input {
-  width: 100%;
+  width: calc(100% - 0px); /* Adjust width to fit within the modal padding */
   padding: 10px;
   margin: 10px 0;
   border: 1px solid #ccc;
   border-radius: 5px;
+  box-sizing: border-box; /* Ensure padding is included in the width */
 }
 
 .modal-buttons {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end; /* Align buttons to the lower right */
   margin-top: 20px;
 }
 
 .modal-button {
   padding: 10px 20px;
-  border: none;
-  border-radius: 5px;
+  font-size: 14px;
+  font-weight: bold;
+  border: 2px solid transparent;
+  border-radius: 20px;
   cursor: pointer;
+  transition: background-color 0.3s, color 0.3s, border-color 0.3s;
 }
 
 .modal-button.cancel {
+  background-color: transparent;
+  color: #333;
+  border-color: #ccc;
+  margin-right: 10px;
+}
+
+.modal-button.cancel:hover {
   background-color: #ccc;
-  color: black;
+  color: white;
 }
 
 .modal-button.save {
   background-color: #61bca8;
   color: white;
+  border-color: #61bca8;
+}
+
+.modal-button.save:hover {
+  background-color: white;
+  color: #61bca8;
 }
 </style>

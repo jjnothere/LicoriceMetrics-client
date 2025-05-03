@@ -18,8 +18,8 @@
         </li>
       </ul>
       <div class="modal-buttons">
-        <button class="modal-button" @click="close">Close</button>
-        <button class="modal-button" @click="ok">OK</button>
+        <button class="modal-button cancel" @click="close">Cancel</button>
+        <button class="modal-button save" @click="ok">OK</button>
       </div>
     </div>
   </div>
@@ -126,16 +126,34 @@ export default {
 
 .modal-button {
   padding: 10px 20px;
-  background-color: #1C1B21;
-  color: white;
-  border: none;
-  border-radius: 5px;
+  font-size: 14px;
+  font-weight: bold;
+  border: 2px solid transparent;
+  border-radius: 20px;
   cursor: pointer;
-  margin-left: 10px;
-  transition: background-color 0.3s;
+  transition: background-color 0.3s, color 0.3s, border-color 0.3s;
 }
 
-.modal-button:hover {
-  background-color: #333;
+.modal-button.cancel {
+  background-color: transparent;
+  color: #333;
+  border-color: #ccc;
+  margin-right: 10px;
+}
+
+.modal-button.cancel:hover {
+  background-color: #ccc;
+  color: white;
+}
+
+.modal-button.save {
+  background-color: #61bca8;
+  color: white;
+  border-color: #61bca8;
+}
+
+.modal-button.save:hover {
+  background-color: white;
+  color: #61bca8;
 }
 </style>
