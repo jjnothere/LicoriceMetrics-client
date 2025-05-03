@@ -76,7 +76,8 @@ export default {
       selectedCampaigns: [], // Store selected campaigns
       searchText: '', // Store the search text
       presets: [], // Store presets
-      selectedPreset: '' // Currently selected preset
+      selectedPreset: '', // Currently selected preset
+      localActiveFilters: [...this.activeFilters], // Local copy of activeFilters
     };
   },
   methods: {
@@ -132,7 +133,7 @@ export default {
       this.emitSearchText(); // Emit the cleared search text
     },
     isActive(filter) {
-      return this.activeFilters?.includes(filter); // Safely check if activeFilters includes the filter
+      return this.localActiveFilters.includes(filter); // Use localActiveFilters for UI updates
     },
     emitSearchText() {
       this.$emit('searchTextUpdated', this.searchText);
@@ -175,30 +176,52 @@ export default {
       }
     },
     async applyPreset() {
-    const preset = this.presets.find(p => p.name === this.selectedPreset)
-    if (!preset) return
+      const preset = this.presets.find(p => p.name === this.selectedPreset);
+      if (!preset) return;
 
-    // 1) turn _off_ every currently-active (non-“all”) filter
-    this.activeFilters.forEach(f => {
-      if (f !== 'all') {
-        this.updateActiveFilters(f, false)
+      // 1) Clear all existing filters as if user clicked "All Changes"
+      this.clearAll();
+
+      // 2) Turn on each filter in the preset via its toggle method
+      if (preset.filters.includes('budget')) {
+        this.toggleBudget();
       }
-    })
+      if (preset.filters.includes('audience')) {
+        this.toggleAudience();
+      }
+      if (preset.filters.includes('objLocLang')) {
+        this.toggleObjLocLang();
+      }
+      if (preset.filters.includes('adType')) {
+        this.toggleAdType();
+      }
+      if (preset.filters.includes('nameStatus')) {
+        this.toggleNameStatus();
+      }
+      if (preset.filters.includes('creatives')) {
+        this.toggleCreatives();
+      }
 
-    // 2) turn _on_ only the filters in this preset
-    preset.filters.forEach(f => {
-      this.updateActiveFilters(f, true)
-    })
+      // 3) Restore search text
+      this.searchText = preset.searchText || '';
+      this.emitSearchText();
 
-    // 3) restore search-text
-    this.searchText = preset.searchText || ''
-    this.emitSearchText()
+      // 4) Restore campaign selection
+      this.selectedCampaigns = preset.selectedCampaigns || [];
+      this.$emit('update:selectedCampaigns', this.selectedCampaigns);
+      this.$emit('campaignIdsEmitted', preset.selectedCampaignIds || []);
 
-    // 4) restore campaign selection
-    this.selectedCampaigns = preset.selectedCampaigns || []
-    this.$emit('update:selectedCampaigns', this.selectedCampaigns)
-    this.$emit('campaignIdsEmitted', preset.selectedCampaignIds || [])
+      // 5) Ensure the dropdown shows the correct preset
+      this.selectedPreset = preset.name;
+    },
   },
+  watch: {
+    activeFilters: {
+      handler(newFilters) {
+        this.localActiveFilters = [...newFilters]; // Sync localActiveFilters with prop
+      },
+      immediate: true,
+    },
   },
   mounted() {
     this.fetchPresets(); // Fetch presets when the component is mounted
