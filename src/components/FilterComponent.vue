@@ -35,6 +35,17 @@
           placeholder="Enter preset name"
           class="preset-name-input"
         />
+        <div class="existing-presets">
+          <h4>Existing Presets ({{ presets.length }}/5)</h4>
+          <ul>
+            <li v-for="preset in presets" :key="preset.name">
+              {{ preset.name }}
+              <button class="icon-button" @click="deletePreset(preset.name)">
+                <i class="fas fa-trash"></i>
+              </button>
+            </li>
+          </ul>
+        </div>
         <div class="modal-buttons">
           <button class="modal-button cancel" @click="closeSavePresetModal">Cancel</button>
           <button class="modal-button save" @click="savePreset">Save</button>
@@ -148,15 +159,28 @@ export default {
         return;
       }
 
-      this.newPresetName = ''; // Clear the input field
+      // Allow opening the modal even if there are 5 presets
+      this.newPresetName = '';
       this.showSavePresetModal = true;
     },
     closeSavePresetModal() {
       this.showSavePresetModal = false;
     },
     async savePreset() {
+      // Prevent saving more than 5 presets
+      if (this.presets.length >= 5) {
+        alert('You have reached the maximum number of presets (5). Please delete one before saving a new preset.');
+        return;
+      }
+
       if (!this.newPresetName.trim()) {
         alert('Preset name cannot be empty.');
+        return;
+      }
+
+      // Check for duplicate preset name
+      if (this.presets.find(p => p.name.toLowerCase() === this.newPresetName.trim().toLowerCase())) {
+        alert('A preset with this name already exists. Please use a different name.');
         return;
       }
 
@@ -179,10 +203,23 @@ export default {
         }, { withCredentials: true });
 
         this.fetchPresets(); // Refresh the presets list
+        this.selectedPreset = this.newPresetName;
         this.closeSavePresetModal(); // Close the modal
       } catch (error) {
         console.error('Error saving preset:', error);
         alert('Failed to save preset.');
+      }
+    },
+    async deletePreset(presetName) {
+      try {
+        await axios.delete('/api/delete-preset', {
+          data: { name: presetName },
+          withCredentials: true
+        });
+        this.fetchPresets();
+      } catch (error) {
+        console.error('Error deleting preset:', error);
+        alert('Failed to delete preset.');
       }
     },
     async fetchPresets() {
@@ -355,6 +392,41 @@ export default {
   border: 1px solid #ccc;
   border-radius: 5px;
   box-sizing: border-box; /* Ensure padding is included in the width */
+}
+
+.existing-presets {
+  margin-top: 20px;
+  text-align: left;
+}
+
+.existing-presets h4 {
+  margin-bottom: 10px;
+}
+
+.existing-presets ul {
+  list-style: none;
+  padding: 0;
+}
+
+.existing-presets li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.icon-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  color: #61bca8ff;
+}
+
+.icon-button:hover {
+  color: #fff;
+  background-color: #61bca8ff;
+  border-radius: 5px;
 }
 
 .modal-buttons {
