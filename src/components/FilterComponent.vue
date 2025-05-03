@@ -291,6 +291,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   gap: 10px;
+  margin-top: 5px;
 }
 
 .filter-buttons {
@@ -340,6 +341,7 @@ export default {
 
 @media (max-width: 1179px) {
   .filter-container {
+    margin-top: 5px;
     flex-direction: column;
     align-items: stretch;
     width: 100%;
