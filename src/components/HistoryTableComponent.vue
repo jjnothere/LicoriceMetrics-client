@@ -3,184 +3,186 @@
     <div class="export-button-container">
       <button class="export-button" @click="exportToCSV">Export to CSV</button>
     </div>
-    <table v-if="filteredAndSearchedDifferences.length > 0">
-      <thead>
-        <tr>
-          <th>Campaign Name</th>
-          <th>Date</th>
-          <th>Changes</th>
-          <th>Notes</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="(difference) in filteredAndSearchedDifferences" :key="difference._id" :id="`changeRow-${formatDateForId(difference.date)}`">
-          <td class="campaign-name">{{ difference.campaign }}</td>
-          <td>{{ difference.date }}</td>
-          <td>
-            <div v-for="(changeValue, changeKey) in difference.changes" :key="difference._id + '-' + changeKey" class="change-item">
-              <div class="change-header" @click="toggleChangeDetail(difference._id, changeKey)">
-                <strong :style="{ color: getColorForChange(changeKey) }">
-                  {{ keyMapping[changeKey] || changeKey }}
-                </strong>
-                <i :class="difference.expandedChanges?.[changeKey] ? 'fas fa-chevron-down' : 'fas fa-chevron-up'" class="chevron-icon"></i>
-              </div>
-              <div v-if="difference.expandedChanges?.[changeKey]" class="change-details">
-                <div v-for="(entry) in getFormattedChanges(changeValue, difference.urnInfoMap)" :key="difference._id + '-' + changeKey + '-' + entry.key">
-                  <span class="nested-key">
-                    {{
-                      entry.key
-                        .replace(/([a-z])([A-Z])/g, '$1 $2')
-                        .split(' ')
-                        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                        .join(' ')
-                        .replace(/\b(Include|Exclude)\b/g, '$1:')
-                    }}<template v-if="entry.key !== ''">:<br /></template>
-                  </span>
-                  
-                  <span class="nested-value">
-                    <!-- If runSchedule and value is a string, format as a date -->
-                    <template v-if="changeKey === 'runSchedule'">
-                      <template v-if="Array.isArray(entry.value)">
-                        <div v-for="(item, idx) in entry.value" :key="idx">
-                          {{ formatRunSchedule(item) }}
-                        </div>
+    <div class="table-container">
+      <table v-if="filteredAndSearchedDifferences.length > 0">
+        <thead>
+          <tr>
+            <th>Campaign Name</th>
+            <th>Date</th>
+            <th>Changes</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(difference) in filteredAndSearchedDifferences" :key="difference._id" :id="`changeRow-${formatDateForId(difference.date)}`">
+            <td class="campaign-name">{{ difference.campaign }}</td>
+            <td>{{ difference.date }}</td>
+            <td>
+              <div v-for="(changeValue, changeKey) in difference.changes" :key="difference._id + '-' + changeKey" class="change-item">
+                <div class="change-header" @click="toggleChangeDetail(difference._id, changeKey)">
+                  <strong :style="{ color: getColorForChange(changeKey) }">
+                    {{ keyMapping[changeKey] || changeKey }}
+                  </strong>
+                  <i :class="difference.expandedChanges?.[changeKey] ? 'fas fa-chevron-down' : 'fas fa-chevron-up'" class="chevron-icon"></i>
+                </div>
+                <div v-if="difference.expandedChanges?.[changeKey]" class="change-details">
+                  <div v-for="(entry) in getFormattedChanges(changeValue, difference.urnInfoMap)" :key="difference._id + '-' + changeKey + '-' + entry.key">
+                    <span class="nested-key">
+                      {{
+                        entry.key
+                          .replace(/([a-z])([A-Z])/g, '$1 $2')
+                          .split(' ')
+                          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                          .join(' ')
+                          .replace(/\b(Include|Exclude)\b/g, '$1:')
+                      }}<template v-if="entry.key !== ''">:<br /></template>
+                    </span>
+                    
+                    <span class="nested-value">
+                      <!-- If runSchedule and value is a string, format as a date -->
+                      <template v-if="changeKey === 'runSchedule'">
+                        <template v-if="Array.isArray(entry.value)">
+                          <div v-for="(item, idx) in entry.value" :key="idx">
+                            {{ formatRunSchedule(item) }}
+                          </div>
+                        </template>
+                        <template v-else>
+                          {{ formatRunSchedule(entry.value) }}
+                        </template>
                       </template>
+                      <!-- For non-runSchedule keys -->
                       <template v-else>
-                        {{ formatRunSchedule(entry.value) }}
+                        <template v-if="Array.isArray(entry.value)">
+                          <!-- Print each array item on its own line -->
+                          <ul class="list-container">
+                            <li v-for="(item, idx) in entry.value" :key="idx" class="list-item">
+                              {{ item }}
+                            </li>
+                          </ul>
+                        </template>
+                        <template v-else>
+                         {{ entry.value }}
+                        </template>
                       </template>
-                    </template>
-                    <!-- For non-runSchedule keys -->
-                    <template v-else>
-                      <template v-if="Array.isArray(entry.value)">
-                        <!-- Print each array item on its own line -->
-                        <ul class="list-container">
-                          <li v-for="(item, idx) in entry.value" :key="idx" class="list-item">
-                            {{ item }}
-                          </li>
-                        </ul>
-                      </template>
-                      <template v-else>
-                       {{ entry.value }}
-                      </template>
-                    </template>
-                  </span>
-                </div>
-              </div>
-            </div>
-          </td>
-          <!-- Notes Column in Table -->
-          <td class="campaign-notes">
-            <!-- Add Note Section -->
-            <div v-if="editingNotes[difference._id]?.addingNote" class="note-input">
-              <input
-                :ref="el => addNoteRefs[difference._id] = el"
-                v-model="editingNotes[difference._id].newNote"
-                placeholder="Add a new note"
-                @keyup.enter="saveNewNotePrompt(difference._id)"
-                @keyup.esc="cancelAddNotePrompt(difference._id)"
-              />
-              <button class="icon-button" @click="saveNewNotePrompt(difference._id)">
-                <i class="fas fa-save"></i>
-              </button>
-              <button class="icon-button" @click="cancelAddNotePrompt(difference._id)">
-                <i class="fas fa-times"></i>
-              </button>
-            </div>
-            <button v-else class="icon-button" @click="enableAddNotePrompt(difference._id)">
-              <i class="fas fa-plus"></i> Add Note
-            </button>
-            <!-- Toggle button to expand/collapse notes -->
-            <div v-if="difference.notes && difference.notes.length > 1">
-              <button class="icon-button toggle-notes" @click="toggleNotes(difference._id)">
-                <i :class="difference.showAllNotes ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
-                {{ difference.showAllNotes ? 'Show Less' : 'Show All Notes' }}
-              </button>
-            </div>
-            <!-- Display Notes -->
-            <div v-if="difference.showAllNotes">
-              <div v-for="note in difference.notes.slice().reverse()" :key="difference._id + '-' + note._id" class="note">
-                <small class="note-timestamp">{{ formatTimestamp(note.timestamp) }}</small>
-                <!-- Edit Note Input -->
-                <div v-if="editingNotes[difference._id]?.[note._id]?.isEditing" class="note-input">
-                  <input
-                    :ref="el => {
-                      if (!editNoteRefs[difference._id]) {
-                        editNoteRefs[difference._id] = {};
-                      }
-                      editNoteRefs[difference._id][note._id] = el;
-                    }"
-                    v-model="editingNotes[difference._id][note._id].newNote"
-                    @keyup.enter="saveNotePrompt(difference._id, note._id)"
-                    @keyup.esc="cancelEditMode(difference._id, note._id)"
-                  />
-                  <button class="icon-button" @click="saveNotePrompt(difference._id, note._id)">
-                    <i class="fas fa-save"></i>
-                  </button>
-                  <button class="icon-button" @click="cancelEditMode(difference._id, note._id)">
-                    <i class="fas fa-times"></i>
-                  </button>
-                </div>
-                <!-- Display Note Text and Action Buttons -->
-                <div v-else>
-                  <span>{{ note.note }}</span>
-                  <div class="icon-buttons">
-                    <button class="icon-button" @click="enableEditMode(difference._id, note._id)">
-                      <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="icon-button" @click="deleteNotePrompt(difference._id, note._id)">
-                      <i class="fas fa-trash"></i>
-                    </button>
-                  </div>
-                </div>
-                <div class="note-separator"></div>
-              </div>
-            </div>
-            <div v-else>
-              <!-- Show only the newest note with edit/delete buttons -->
-              <div class="note" v-if="difference.notes && difference.notes.length > 0">
-                <small class="note-timestamp">
-                  {{ formatTimestamp(difference.notes[difference.notes.length - 1].timestamp) }}
-                </small>
-                <!-- Edit Note Input -->
-                <div v-if="editingNotes[difference._id]?.[difference.notes[difference.notes.length - 1]._id]?.isEditing" class="note-input">
-                  <input
-                    :ref="el => {
-                      if (!editNoteRefs[difference._id]) {
-                        editNoteRefs[difference._id] = {};
-                      }
-                      editNoteRefs[difference._id][difference.notes[difference.notes.length - 1]._id] = el;
-                    }"
-                    v-model="editingNotes[difference._id][difference.notes[difference.notes.length - 1]._id].newNote"
-                    @keyup.enter="saveNotePrompt(difference._id, difference.notes[difference.notes.length - 1]._id)"
-                    @keyup.esc="cancelEditMode(difference._id, difference.notes[difference.notes.length - 1]._id)"
-                  />
-                  <button class="icon-button" @click="saveNotePrompt(difference._id, difference.notes[difference.notes.length - 1]._id)">
-                    <i class="fas fa-save"></i>
-                  </button>
-                  <button class="icon-button" @click="cancelEditMode(difference._id, difference.notes[difference.notes.length - 1]._id)">
-                    <i class="fas fa-times"></i>
-                  </button>
-                </div>
-                <!-- Display Note Text and Action Buttons -->
-                <div v-else>
-                  <span>{{ difference.notes[difference.notes.length - 1].note }}</span>
-                  <div class="icon-buttons">
-                    <button class="icon-button" @click="enableEditMode(difference._id, difference.notes[difference.notes.length - 1]._id)">
-                      <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="icon-button" @click="deleteNotePrompt(difference._id, difference.notes[difference.notes.length - 1]._id)">
-                      <i class="fas fa-trash"></i>
-                    </button>
+                    </span>
                   </div>
                 </div>
               </div>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-    <div v-else>
-      No changes found for the selected filters.
+            </td>
+            <!-- Notes Column in Table -->
+            <td class="campaign-notes">
+              <!-- Add Note Section -->
+              <div v-if="editingNotes[difference._id]?.addingNote" class="note-input">
+                <input
+                  :ref="el => addNoteRefs[difference._id] = el"
+                  v-model="editingNotes[difference._id].newNote"
+                  placeholder="Add a new note"
+                  @keyup.enter="saveNewNotePrompt(difference._id)"
+                  @keyup.esc="cancelAddNotePrompt(difference._id)"
+                />
+                <button class="icon-button" @click="saveNewNotePrompt(difference._id)">
+                  <i class="fas fa-save"></i>
+                </button>
+                <button class="icon-button" @click="cancelAddNotePrompt(difference._id)">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+              <button v-else class="icon-button" @click="enableAddNotePrompt(difference._id)">
+                <i class="fas fa-plus"></i> Add Note
+              </button>
+              <!-- Toggle button to expand/collapse notes -->
+              <div v-if="difference.notes && difference.notes.length > 1">
+                <button class="icon-button toggle-notes" @click="toggleNotes(difference._id)">
+                  <i :class="difference.showAllNotes ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
+                  {{ difference.showAllNotes ? 'Show Less' : 'Show All Notes' }}
+                </button>
+              </div>
+              <!-- Display Notes -->
+              <div v-if="difference.showAllNotes">
+                <div v-for="note in difference.notes.slice().reverse()" :key="difference._id + '-' + note._id" class="note">
+                  <small class="note-timestamp">{{ formatTimestamp(note.timestamp) }}</small>
+                  <!-- Edit Note Input -->
+                  <div v-if="editingNotes[difference._id]?.[note._id]?.isEditing" class="note-input">
+                    <input
+                      :ref="el => {
+                        if (!editNoteRefs[difference._id]) {
+                          editNoteRefs[difference._id] = {};
+                        }
+                        editNoteRefs[difference._id][note._id] = el;
+                      }"
+                      v-model="editingNotes[difference._id][note._id].newNote"
+                      @keyup.enter="saveNotePrompt(difference._id, note._id)"
+                      @keyup.esc="cancelEditMode(difference._id, note._id)"
+                    />
+                    <button class="icon-button" @click="saveNotePrompt(difference._id, note._id)">
+                      <i class="fas fa-save"></i>
+                    </button>
+                    <button class="icon-button" @click="cancelEditMode(difference._id, note._id)">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                  <!-- Display Note Text and Action Buttons -->
+                  <div v-else>
+                    <span>{{ note.note }}</span>
+                    <div class="icon-buttons">
+                      <button class="icon-button" @click="enableEditMode(difference._id, note._id)">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button class="icon-button" @click="deleteNotePrompt(difference._id, note._id)">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="note-separator"></div>
+                </div>
+              </div>
+              <div v-else>
+                <!-- Show only the newest note with edit/delete buttons -->
+                <div class="note" v-if="difference.notes && difference.notes.length > 0">
+                  <small class="note-timestamp">
+                    {{ formatTimestamp(difference.notes[difference.notes.length - 1].timestamp) }}
+                  </small>
+                  <!-- Edit Note Input -->
+                  <div v-if="editingNotes[difference._id]?.[difference.notes[difference.notes.length - 1]._id]?.isEditing" class="note-input">
+                    <input
+                      :ref="el => {
+                        if (!editNoteRefs[difference._id]) {
+                          editNoteRefs[difference._id] = {};
+                        }
+                        editNoteRefs[difference._id][difference.notes[difference.notes.length - 1]._id] = el;
+                      }"
+                      v-model="editingNotes[difference._id][difference.notes[difference.notes.length - 1]._id].newNote"
+                      @keyup.enter="saveNotePrompt(difference._id, difference.notes[difference.notes.length - 1]._id)"
+                      @keyup.esc="cancelEditMode(difference._id, difference.notes[difference.notes.length - 1]._id)"
+                    />
+                    <button class="icon-button" @click="saveNotePrompt(difference._id, difference.notes[difference.notes.length - 1]._id)">
+                      <i class="fas fa-save"></i>
+                    </button>
+                    <button class="icon-button" @click="cancelEditMode(difference._id, difference.notes[difference.notes.length - 1]._id)">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                  <!-- Display Note Text and Action Buttons -->
+                  <div v-else>
+                    <span>{{ difference.notes[difference.notes.length - 1].note }}</span>
+                    <div class="icon-buttons">
+                      <button class="icon-button" @click="enableEditMode(difference._id, difference.notes[difference.notes.length - 1]._id)">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button class="icon-button" @click="deleteNotePrompt(difference._id, difference.notes[difference.notes.length - 1]._id)">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div v-else>
+        No changes found for the selected filters.
+      </div>
     </div>
   </div>
 </template>
@@ -608,6 +610,11 @@ export default {
 
 <style scoped>
 /* Your existing styles for the table remain the same */
+.table-container {
+  overflow-x: auto; /* Enable horizontal scrolling for the table */
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling for mobile devices */
+}
+
 table {
   margin-top: 10px;
   width: 100%;
@@ -616,6 +623,7 @@ table {
   border-radius: 20px;
   overflow: hidden;
   color: #1C1B21;
+  min-width: 600px; /* Ensure table doesn't shrink too much on small screens */
 }
 
 th:first-child {
