@@ -139,6 +139,15 @@ export default {
       this.$emit('searchTextUpdated', this.searchText);
     },
     openSavePresetModal() {
+      const hasNoFiltersOrOnlyAll =
+        this.activeFilters.length === 0 ||
+        (this.activeFilters.length === 1 && this.activeFilters.includes('all'));
+
+      if (hasNoFiltersOrOnlyAll && !this.searchText.trim()) {
+        alert('Please select your filters and/or enter a search term before saving a preset.');
+        return;
+      }
+
       this.newPresetName = ''; // Clear the input field
       this.showSavePresetModal = true;
     },
@@ -148,6 +157,15 @@ export default {
     async savePreset() {
       if (!this.newPresetName.trim()) {
         alert('Preset name cannot be empty.');
+        return;
+      }
+
+      const hasNoFiltersOrOnlyAll =
+        this.activeFilters.length === 0 ||
+        (this.activeFilters.length === 1 && this.activeFilters.includes('all'));
+
+      if (hasNoFiltersOrOnlyAll && !this.searchText.trim()) {
+        alert('Please select your filters and/or enter a search term before saving a preset.');
         return;
       }
 

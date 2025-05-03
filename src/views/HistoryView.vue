@@ -320,7 +320,6 @@ export default {
     };
 
     const logCampaignIds = (ids) => {
-      console.log('Emitted Campaign IDs:', ids);
       selectedCampaignIds.value = ids;
     };
 
