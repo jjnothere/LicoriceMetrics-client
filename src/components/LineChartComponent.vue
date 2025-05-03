@@ -10,7 +10,7 @@ import axios from 'axios';
 import { ref, onMounted, watch, computed } from 'vue';
 import { Chart, registerables } from 'chart.js';
 import annotationPlugin from 'chartjs-plugin-annotation'; // Import annotation plugin
-import { colorMapping, keyMapping } from '../constants/constants'; // Import colorMapping and keyAliasMapping
+import { colorMapping, keyMapping, metricMapping } from '../constants/constants'; // Import colorMapping, keyAliasMapping, and metricMapping
 
 Chart.register(...registerables, annotationPlugin); // Register annotation plugin
 
@@ -237,7 +237,7 @@ export default {
           labels,
           datasets: [
             {
-              label: props.metric1,
+              label: metricMapping[props.metric1] || props.metric1,
               data: metric1Data,
               borderColor: '#6A9A1F', // Earthy Green
               fill: false,
@@ -250,7 +250,7 @@ export default {
               borderWidth: 2
             },
             {
-              label: props.metric2,
+              label: metricMapping[props.metric2] || props.metric2,
               data: metric2Data,
               borderColor: '#D32F2F', // Warm Red
               fill: false,
@@ -272,10 +272,11 @@ export default {
               callbacks: {
                 label: (context) => {
                   const date = context.label;
+                  const displayLabel = metricMapping[context.dataset.label] || context.dataset.label;
                   if (changeDates.includes(date)) {
-                    return `${context.dataset.label}: ${context.raw} (Change)`;
+                    return `${displayLabel}: ${context.raw}`;
                   }
-                  return `${context.dataset.label}: ${context.raw}`;
+                  return `${displayLabel}: ${context.raw}`;
                 }
               }
             },
