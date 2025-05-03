@@ -9,6 +9,13 @@
       <button class="filter-button" :class="{ active: isActive('nameStatus') }" @click="toggleNameStatus" style="--filter-color: #D32F2F;">Status/Name</button>
       <button class="filter-button" :class="{ active: isActive('creatives') }" @click="toggleCreatives" style="--filter-color: #5DADE2;">Creatives</button>
       <button class="filter-button" :class="{ active: isActive('select') }" @click="openModal" style="--filter-color: black;">Select</button>
+      <button class="filter-button" @click="openSavePresetModal" style="--filter-color: green;">Save Preset</button>
+      <select class="preset-dropdown" v-model="selectedPreset" @change="applyPreset">
+        <option value="" disabled>Select Preset</option>
+        <option v-for="preset in presets" :key="preset.name" :value="preset.name">
+          {{ preset.name }}
+        </option>
+      </select>
     </div>
     <input
       type="text"
@@ -18,6 +25,22 @@
       @input="emitSearchText"
     />
     <ModalComponent v-if="showModal" @close="closeModal" :campaignGroups="campaignGroups" :selectedCampaigns="selectedCampaigns" @update:selectedCampaigns="updateSelectedCampaigns" @campaignIdsEmitted="emitCampaignIds" />
+    <!-- Save Preset Modal -->
+    <div v-if="showSavePresetModal" class="modal-overlay" @click.self="closeSavePresetModal">
+      <div class="modal-content">
+        <h3>Save Preset</h3>
+        <input
+          type="text"
+          v-model="newPresetName"
+          placeholder="Enter preset name"
+          class="preset-name-input"
+        />
+        <div class="modal-buttons">
+          <button class="modal-button cancel" @click="closeSavePresetModal">Cancel</button>
+          <button class="modal-button save" @click="savePreset">Save</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -47,9 +70,13 @@ export default {
   data() {
     return {
       showModal: false,
+      showSavePresetModal: false, // Control visibility of the save preset modal
+      newPresetName: '', // Store the name of the new preset
       campaignGroups: [],
       selectedCampaigns: [], // Store selected campaigns
-      searchText: '' // Store the search text
+      searchText: '', // Store the search text
+      presets: [], // Store presets
+      selectedPreset: '' // Currently selected preset
     };
   },
   methods: {
@@ -98,15 +125,76 @@ export default {
     clearAll() {
       this.$emit('clearAllFilters');
       this.selectedCampaigns = [];
+      this.searchText = ''; // Clear the search text
+      this.selectedPreset = ''; // Reset the preset dropdown
       this.$emit('update:selectedCampaigns', this.selectedCampaigns);
       this.$emit('campaignIdsEmitted', this.selectedCampaigns);
+      this.emitSearchText(); // Emit the cleared search text
     },
     isActive(filter) {
       return this.activeFilters?.includes(filter); // Safely check if activeFilters includes the filter
     },
     emitSearchText() {
       this.$emit('searchTextUpdated', this.searchText);
+    },
+    openSavePresetModal() {
+      this.newPresetName = ''; // Clear the input field
+      this.showSavePresetModal = true;
+    },
+    closeSavePresetModal() {
+      this.showSavePresetModal = false;
+    },
+    async savePreset() {
+      if (!this.newPresetName.trim()) {
+        alert('Preset name cannot be empty.');
+        return;
+      }
+
+      try {
+        const response = await axios.post('/api/save-preset', {
+          name: this.newPresetName,
+          filters: this.activeFilters,
+          searchText: this.searchText,
+          selectedCampaigns: this.selectedCampaigns,
+          selectedCampaignIds: this.selectedCampaignIds
+        }, { withCredentials: true });
+
+        this.fetchPresets(); // Refresh the presets list
+        this.closeSavePresetModal(); // Close the modal
+      } catch (error) {
+        console.error('Error saving preset:', error);
+        alert('Failed to save preset.');
+      }
+    },
+    async fetchPresets() {
+      try {
+        const response = await axios.get('/api/get-presets', { withCredentials: true });
+        this.presets = response.data;
+      } catch (error) {
+        console.error('Error fetching presets:', error);
+      }
+    },
+    applyPreset() {
+      const preset = this.presets.find(p => p.name === this.selectedPreset);
+      if (preset) {
+        this.$emit('updateActiveFilters', preset.filters); // Update active filters
+        this.searchText = preset.searchText;
+        this.selectedCampaigns = preset.selectedCampaigns || []; // Apply selected campaigns
+        this.$emit('update:selectedCampaigns', this.selectedCampaigns); // Emit selected campaigns
+        this.$emit('campaignIdsEmitted', preset.selectedCampaignIds || []); // Emit selected campaign IDs
+        this.emitSearchText();
+
+        // Highlight the selected filters
+        preset.filters.forEach(filter => {
+          if (!this.activeFilters.includes(filter)) {
+            this.activeFilters.push(filter);
+          }
+        });
+      }
     }
+  },
+  mounted() {
+    this.fetchPresets(); // Fetch presets when the component is mounted
   }
 };
 </script>
@@ -158,6 +246,13 @@ export default {
   margin-left: auto;
 }
 
+.preset-dropdown {
+  padding: 5px 10px;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  font-size: 14px;
+}
+
 @media (max-width: 1179px) {
   .filter-container {
     flex-direction: column;
@@ -181,5 +276,57 @@ export default {
     margin-left: 0;
     margin-top: 10px; /* Add spacing below the buttons */
   }
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  width: 300px;
+  text-align: center;
+}
+
+.preset-name-input {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.modal-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.modal-button.cancel {
+  background-color: #ccc;
+  color: black;
+}
+
+.modal-button.save {
+  background-color: #61bca8;
+  color: white;
 }
 </style>

@@ -840,7 +840,7 @@ td {
 
 .export-button-container {
   text-align: right;
-  margin-bottom: 10px;
+  margin: 10px 0;
 }
 
 .export-button {
