@@ -456,7 +456,8 @@ export default {
         if (!difference.expandedChanges) {
           difference.expandedChanges = {};
         }
-        difference.expandedChanges[changeKey] = !difference.expandedChanges[changeKey];
+        // Update the expandedChanges state without triggering unnecessary reactivity
+        difference.expandedChanges = { ...difference.expandedChanges, [changeKey]: !difference.expandedChanges[changeKey] };
       }
     };
 
