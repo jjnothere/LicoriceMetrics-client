@@ -553,7 +553,7 @@ export default {
 .sticky-chart-container {
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 2;
   background-color: white;
 }
 </style>
