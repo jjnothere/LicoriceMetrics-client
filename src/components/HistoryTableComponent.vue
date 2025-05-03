@@ -232,7 +232,9 @@ export default {
     const enableAddNotePrompt = async (id) => {
       editingNotes.value[id] = { addingNote: true, newNote: '' };
       await nextTick();
-      addNoteRefs.value[id]?.focus();
+      if (addNoteRefs.value[id]) {
+        addNoteRefs.value[id].focus();
+      }
     };
 
     const cancelAddNotePrompt = (id) => {
@@ -297,7 +299,9 @@ export default {
         if (note) {
           editingNotes.value[differenceId][noteId] = { isEditing: true, newNote: note.note };
           await nextTick();
-          editNoteRefs.value[differenceId]?.[noteId]?.focus();
+          if (editNoteRefs.value[differenceId]?.[noteId]) {
+            editNoteRefs.value[differenceId][noteId].focus();
+          }
         }
       }
     };
@@ -412,14 +416,34 @@ export default {
     });
 
     const searchNestedValues = (value, searchTextLower) => {
+      if (value == null) {
+        // Handle null or undefined values
+        return false;
+      }
+
       if (Array.isArray(value)) {
+        // Recursively search each item in the array
         return value.some((item) => searchNestedValues(item, searchTextLower));
-      } else if (typeof value === 'object' && value !== null) {
+      } else if (typeof value === 'object') {
+        // Handle objects with `added` and `removed` keys (e.g., targetingCriteria)
+        if (value.added || value.removed) {
+          const addedMatches = value.added?.some((item) =>
+            searchNestedValues(replaceUrnWithInfo(item), searchTextLower)
+          );
+          const removedMatches = value.removed?.some((item) =>
+            searchNestedValues(replaceUrnWithInfo(item), searchTextLower)
+          );
+          return addedMatches || removedMatches;
+        }
+
+        // Recursively search each value in the object
         return Object.values(value).some((nestedValue) =>
           searchNestedValues(nestedValue, searchTextLower)
         );
       } else {
-        return value.toString().toLowerCase().includes(searchTextLower);
+        // Replace URNs with their mapped values before searching
+        const mappedValue = replaceUrnWithInfo(value);
+        return mappedValue.toString().toLowerCase().includes(searchTextLower);
       }
     };
 
