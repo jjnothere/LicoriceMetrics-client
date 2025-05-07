@@ -24,7 +24,7 @@ export const isTokenExpired = (token) => {
     console.error('Error decoding token:', error);
     return true;
   }
-};
+}; //test
 
 const getTokenFromCookies = () => {
   const cookie = document.cookie.split('; ').find((row) => row.startsWith('accessToken='));
