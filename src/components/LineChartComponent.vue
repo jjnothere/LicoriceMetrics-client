@@ -6,7 +6,7 @@
 </template>
 
 <script>
-import axios from 'axios';
+import api from '../api';
 import { ref, onMounted, watch, computed } from 'vue';
 import { Chart, registerables } from 'chart.js';
 import annotationPlugin from 'chartjs-plugin-annotation'; // Import annotation plugin
@@ -186,7 +186,7 @@ export default {
         const startDate = formatDate(props.chartStartDate);
         const endDate = formatDate(props.chartEndDate);
 
-        const response = await axios.get('/api/linkedin/chart-data', {
+        const response = await api.get('/linkedin/chart-data', {
           params: {
             start: startDate,
             end: endDate,

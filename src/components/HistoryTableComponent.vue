@@ -252,14 +252,9 @@ export default {
         .find((row) => row.startsWith('accessToken='))
         ?.split('=')[1];
 
-      if (!token) {
-        console.error('No authorization token found');
-        return;
-      }
-
       try {
         const { data } = await api.post(
-          '/api/add-note',
+          '/add-note',
           {
             accountId: props.selectedAdAccountId,
             campaignId: id,
@@ -321,11 +316,6 @@ export default {
         .find((row) => row.startsWith('accessToken='))
         ?.split('=')[1];
 
-      if (!token) {
-        console.error('No authorization token found');
-        return;
-      }
-
       try {
         const difference = differences.value.find((diff) => diff._id === differenceId);
         if (!difference) {
@@ -340,7 +330,7 @@ export default {
         }
 
         await api.post(
-          '/api/edit-note',
+          '/edit-note',
           {
             accountId: props.selectedAdAccountId,
             campaignId: differenceId,
@@ -369,14 +359,9 @@ export default {
         .find((row) => row.startsWith('accessToken='))
         ?.split('=')[1];
 
-      if (!token) {
-        console.error('No authorization token found');
-        return;
-      }
-
       try {
         await api.post(
-          '/api/delete-note',
+          '/delete-note',
           {
             accountId: props.selectedAdAccountId,
             campaignId: differenceId,

@@ -56,7 +56,7 @@
 </template>
 
 <script>
-import axios from 'axios';
+import api from '../api';
 import ModalComponent from './ModalComponent.vue';
 
 export default {
@@ -94,7 +94,7 @@ export default {
   methods: {
     async openModal() {
       try {
-        const response = await axios.get('/api/linkedin/linkedin-ad-campaign-groups', {
+        const response = await api.get('/linkedin/linkedin-ad-campaign-groups', {
           params: { accountId: this.$store.state.selectedAdAccountId },
           withCredentials: true
         });
@@ -194,7 +194,7 @@ export default {
       }
 
       try {
-        const response = await axios.post('/api/save-preset', {
+        const response = await api.post('/save-preset', {
           name: this.newPresetName,
           filters: this.activeFilters,
           searchText: this.searchText,
@@ -212,7 +212,7 @@ export default {
     },
     async deletePreset(presetName) {
       try {
-        await axios.delete('/api/delete-preset', {
+        await api.delete('/delete-preset', {
           data: { name: presetName },
           withCredentials: true
         });
@@ -224,7 +224,7 @@ export default {
     },
     async fetchPresets() {
       try {
-        const response = await axios.get('/api/get-presets', { withCredentials: true });
+        const response = await api.get('/get-presets', { withCredentials: true });
         this.presets = response.data;
       } catch (error) {
         console.error('Error fetching presets:', error);

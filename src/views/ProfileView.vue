@@ -35,7 +35,7 @@
   const fetchUserProfile = async () => {
     const token = getTokenFromCookies();
     try {
-      const response = await api.get('/api/user-profile', {
+      const response = await api.get('/user-profile', {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true
       });
@@ -57,7 +57,7 @@
   const fetchAdAccountNames = async (adAccounts) => {
     const token = getTokenFromCookies();
     try {
-      const response = await api.get('/api/ad-account-name', {
+      const response = await api.get('/ad-account-name', {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true
       });

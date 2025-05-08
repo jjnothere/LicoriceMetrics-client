@@ -167,22 +167,12 @@ export default {
       dateRange.value = { start: selectedStartDate.value, end: selectedEndDate.value };
     });
 
-    const getTokenFromCookies = () => {
-      const cookie = document.cookie.split('; ').find(row => row.startsWith('accessToken='));
-      return cookie ? cookie.split('=')[1] : null;
-    };
+    // Removed getTokenFromCookies
 
     const fetchDifferences = async () => {
       try {
-        const token = getTokenFromCookies();
-        if (!token) {
-          console.error('No authorization token found');
-          return;
-        }
-        const response = await api.get('/api/get-all-changes', {
-          params: { adAccountId: selectedAdAccountId.value },
-          headers: { Authorization: `Bearer ${token}` },
-          withCredentials: true
+        const response = await api.get('/get-all-changes', {
+          params: { adAccountId: selectedAdAccountId.value }
         });
         const { changes, urnInfoMap: fetchedUrnInfoMap } = response.data;
         urnInfoMap.value = fetchedUrnInfoMap || {}; // Initialize urnInfoMap
@@ -202,22 +192,13 @@ export default {
 
     const checkForChanges = async () => {
       try {
-        const token = getTokenFromCookies();
-        if (!token) {
-          console.error('No authorization token found');
+        if (!user.userId) {
+          console.error('User ID is not available');
           return;
         }
-        if (!user.linkedinId || !user.userId) {
-          console.error('User LinkedIn ID or User ID is not available');
-          return;
-        }
-        const response = await api.post('/api/check-for-changes', {
+        await api.post('/check-for-changes', {
           adAccountId: selectedAdAccountId.value,
-          linkedinId: user.linkedinId,
           userId: user.userId
-        }, {
-          headers: { Authorization: `Bearer ${token}` },
-          withCredentials: true
         });
       } catch (error) {
         console.error('Error checking for changes:', error);

@@ -46,7 +46,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watchEffect, watch } from 'vue';
+import { ref, computed, watchEffect, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import api from '../api';
 import { useAuth } from '../composables/auth';
@@ -63,21 +63,9 @@ const route = useRoute();
 const isLoggedInComputed = computed(() => isLoggedIn.value);
 const isProfilePage = computed(() => route.path === '/profile');
 
-const getTokenFromCookies = () => {
-  const cookie = document.cookie.split('; ').find(row => row.startsWith('accessToken='));
-  return cookie ? cookie.split('=')[1] : null;
-};
-
 const logout = async () => {
   try {
-    const token = getTokenFromCookies();
-    if (!token) throw new Error("Authorization token is missing");
-
-    await api.post('/api/logout', {}, {
-      headers: { Authorization: `Bearer ${token}` },
-      withCredentials: true
-    });
-
+    await api.post('/logout', {}, { withCredentials: true });
     localStorage.removeItem('selectedAdAccountId');
     setAuth(false);
     user.email = '';
@@ -101,7 +89,7 @@ const setDefaultAdAccount = () => {
 
 const fetchAdAccountNames = async () => {
   try {
-    const response = await api.get('/api/ad-account-name', { withCredentials: true });
+    const response = await api.get('/ad-account-name', { withCredentials: true });
     adAccounts.value = response.data.adAccounts;
 
     if (!selectedAdAccount.value) {
@@ -150,18 +138,13 @@ watchEffect(() => {
   }
 });
 
-watchEffect(() => {
-  checkAuthStatus();
+onMounted(async () => {
+  await checkAuthStatus();
   if (isLoggedIn.value) {
     fetchAdAccountNames();
   }
 });
 
-watch(isLoggedIn, (newIsLoggedIn) => {
-  if (newIsLoggedIn) {
-    fetchAdAccountNames();
-  }
-});
 </script>
 
 <style scoped>
@@ -249,9 +232,6 @@ watch(isLoggedIn, (newIsLoggedIn) => {
   margin: 0 0.5rem;
   color: #888;
   font-weight: bold;
-}
-.logout-link {
-  /* no absolute positioning now */
 }
 
 /* Dropdown */

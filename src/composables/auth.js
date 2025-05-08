@@ -33,16 +33,12 @@ const getTokenFromCookies = () => {
 
 const refreshAccessToken = async () => {
   try {
-    const response = await api.post('/api/refresh-token', {}, { withCredentials: true });
-    const newAccessToken = response.data.accessToken;
-
-    if (newAccessToken) {
-      document.cookie = `accessToken=${newAccessToken}; Path=/; Secure; HttpOnly`;
-      return newAccessToken;
-    }
+    // Request a new access token; server will set HttpOnly cookie
+    await api.post('/refresh-token', {}, { withCredentials: true });
+    return true;
   } catch (error) {
     console.error('Error refreshing access token:', error);
-    return null;
+    return false;
   }
 };
 
@@ -52,39 +48,32 @@ export function useAuth() {
   };
 
   const checkAuthStatus = async () => {
-    let token = getTokenFromCookies();
-
-    if (token && !isTokenExpired(token)) {
-      try {
-        const decodedToken = jwtDecode(token);
-        user.linkedinId = decodedToken.linkedinId;
-        user.userId = decodedToken.userId;
-
-        const response = await api.get('/api/user-profile'); // no need for Authorization header anymore, cookies included
-        user.email = response.data.email;
-        user.accountId = response.data.accountId;
-        setAuth(true);
-      } catch (error) {
-        console.error('Error retrieving user profile:', error);
-        document.cookie = 'accessToken=; Max-Age=0';
-        setAuth(false);
-      }
-    } else if (token && isTokenExpired(token)) {
-      // Attempt to refresh the token
-      const newToken = await refreshAccessToken();
-      if (newToken) {
-        await checkAuthStatus(); // Retry authentication with the new token
+    try {
+      // Attempt to get user profile; cookie sent automatically
+      const response = await api.get('/user-profile', { withCredentials: true });
+      user.email = response.data.email;
+      user.accountId = response.data.accountId;
+      user.linkedinId = response.data.linkedinId || user.linkedinId;
+      user.userId = response.data.userId || user.userId;
+      setAuth(true);
+    } catch (error) {
+      if (error.response && error.response.status === 401) {
+        // Unauthorized: try refreshing and retry
+        const refreshed = await refreshAccessToken();
+        if (refreshed) {
+          await checkAuthStatus();
+        } else {
+          setAuth(false);
+        }
       } else {
+        console.error('Error retrieving user profile:', error);
         setAuth(false);
       }
-    } else {
-      setAuth(false);
     }
   };
 
   const setInitialAuthState = () => {
-    const token = getTokenFromCookies();
-    isLoggedIn.value = token && !isTokenExpired(token);
+    checkAuthStatus();
   };
 
   return {

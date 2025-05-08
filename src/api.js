@@ -3,9 +3,9 @@ import { useAuth } from './composables/auth'
 
 // Create an axios instance
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
-  withCredentials: true // important for sending cookies
-})
+  baseURL: `${import.meta.env.VITE_API_BASE_URL}/api`,
+  withCredentials: true
+});
 
 // Flag to indicate if a refresh is in progress
 let isRefreshing = false
@@ -43,11 +43,8 @@ api.interceptors.response.use(
       // No refresh in progress, attempt to refresh
       isRefreshing = true
       try {
-        await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL}/api/refresh-token`,
-          {},
-          { withCredentials: true }
-        )
+        // Use the api instance (baseURL already includes /api)
+        await api.post('/refresh-token', {}, { withCredentials: true })
 
         isRefreshing = false
         onRefreshed() // notify all subscribers that refresh is done
