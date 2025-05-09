@@ -37,6 +37,7 @@ const refreshAccessToken = async () => {
     await api.post('/refresh-token', {}, { withCredentials: true });
     return true;
   } catch (error) {
+    // If 401 or missing refresh token => force login
     console.error('Error refreshing access token:', error);
     return false;
   }
@@ -58,13 +59,8 @@ export function useAuth() {
       setAuth(true);
     } catch (error) {
       if (error.response && error.response.status === 401) {
-        // Unauthorized: try refreshing and retry
-        const refreshed = await refreshAccessToken();
-        if (refreshed) {
-          await checkAuthStatus();
-        } else {
-          setAuth(false);
-        }
+        // Missing/invalid refresh => force login
+        setAuth(false);
       } else {
         console.error('Error retrieving user profile:', error);
         setAuth(false);
