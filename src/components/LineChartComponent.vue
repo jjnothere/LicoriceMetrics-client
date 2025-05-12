@@ -14,6 +14,28 @@ import { colorMapping, keyMapping, metricMapping } from '../constants/constants'
 
 Chart.register(...registerables, annotationPlugin); // Register annotation plugin
 
+function buildFields(m1, m2) {
+  const fields = new Set();
+  [m1, m2].forEach(metric => {
+    if (metric === 'clickThroughRate') {
+      fields.add('clicks');
+      fields.add('impressions');
+    } else if (metric === 'costPerClick') {
+      fields.add('clicks');
+      fields.add('costInLocalCurrency');
+    } else if (metric === 'costPerThousandImpressions') {
+      fields.add('costInLocalCurrency');
+      fields.add('impressions');
+    } else if (metric === 'costPerConversion') {
+      fields.add('costInLocalCurrency');
+      fields.add('externalWebsiteConversions');
+    } else {
+      fields.add(metric);
+    }
+  });
+  return Array.from(fields).join(',');
+}
+
 export default {
   name: 'LineChartComponent',
   props: {
@@ -112,18 +134,71 @@ export default {
         const key = formatKey(item);
         if (!key) return; // Skip invalid dates
         if (!aggregatedMap[key]) {
-          aggregatedMap[key] = { metric1: 0, metric2: 0, rawDate: item.dateRange.start };
+          aggregatedMap[key] = {
+            rawDate: item.dateRange.start,
+            metric1: 0, metric2: 0,
+            metric1Clicks: 0, metric1Impressions: 0,
+            metric2Clicks: 0, metric2Impressions: 0,
+            metric1Cost: 0, metric2Cost: 0,
+            metric1ExternalWebsiteConversions: 0, metric2ExternalWebsiteConversions: 0
+          };
         }
-        aggregatedMap[key].metric1 += parseFloat(item[props.metric1]) || 0;
-        aggregatedMap[key].metric2 += parseFloat(item[props.metric2]) || 0;
+        // If user selected CTR for metric1, accumulate clicks/impressions
+        if (props.metric1 === 'clickThroughRate') {
+          aggregatedMap[key].metric1Clicks += parseFloat(item.clicks) || 0;
+          aggregatedMap[key].metric1Impressions += parseFloat(item.impressions) || 0;
+        } else if (props.metric1 === 'costPerClick') {
+          aggregatedMap[key].metric1Clicks += parseFloat(item.clicks) || 0;
+          aggregatedMap[key].metric1Cost += parseFloat(item.costInLocalCurrency) || 0;
+        } else if (props.metric1 === 'costPerThousandImpressions') {
+          aggregatedMap[key].metric1Cost += parseFloat(item.costInLocalCurrency) || 0;
+          aggregatedMap[key].metric1Impressions += parseFloat(item.impressions) || 0;
+        } else if (props.metric1 === 'costPerConversion') {
+          aggregatedMap[key].metric1Cost += parseFloat(item.costInLocalCurrency) || 0;
+          aggregatedMap[key].metric1ExternalWebsiteConversions += parseFloat(item.externalWebsiteConversions) || 0;
+        } else {
+          aggregatedMap[key].metric1 += parseFloat(item[props.metric1]) || 0;
+        }
+
+        // Same logic for metric2
+        if (props.metric2 === 'clickThroughRate') {
+          aggregatedMap[key].metric2Clicks += parseFloat(item.clicks) || 0;
+          aggregatedMap[key].metric2Impressions += parseFloat(item.impressions) || 0;
+        } else if (props.metric2 === 'costPerClick') {
+          aggregatedMap[key].metric2Clicks += parseFloat(item.clicks) || 0;
+          aggregatedMap[key].metric2Cost += parseFloat(item.costInLocalCurrency) || 0;
+        } else if (props.metric2 === 'costPerThousandImpressions') {
+          aggregatedMap[key].metric2Cost += parseFloat(item.costInLocalCurrency) || 0;
+          aggregatedMap[key].metric2Impressions += parseFloat(item.impressions) || 0;
+        } else if (props.metric2 === 'costPerConversion') {
+          aggregatedMap[key].metric2Cost += parseFloat(item.costInLocalCurrency) || 0;
+          aggregatedMap[key].metric2ExternalWebsiteConversions += parseFloat(item.externalWebsiteConversions) || 0;
+        } else {
+          aggregatedMap[key].metric2 += parseFloat(item[props.metric2]) || 0;
+        }
       });
 
-      return Object.entries(aggregatedMap).map(([key, data]) => ({
-        key,
-        date: data.rawDate,
-        metric1: data.metric1,
-        metric2: data.metric2
-      })).sort((a, b) => {
+      return Object.entries(aggregatedMap).map(([key, data]) => {
+        let m1 = props.metric1 === 'clickThroughRate'
+          ? (data.metric1Impressions ? (data.metric1Clicks / data.metric1Impressions) * 100 : 0)
+          : props.metric1 === 'costPerClick'
+          ? (data.metric1Clicks ? data.metric1Cost / data.metric1Clicks : 0)
+          : props.metric1 === 'costPerThousandImpressions'
+          ? (data.metric1Impressions ? (data.metric1Cost / data.metric1Impressions) * 1000 : 0)
+          : props.metric1 === 'costPerConversion'
+          ? (data.metric1ExternalWebsiteConversions ? data.metric1Cost / data.metric1ExternalWebsiteConversions : 0)
+          : data.metric1;
+        let m2 = props.metric2 === 'clickThroughRate'
+          ? (data.metric2Impressions ? (data.metric2Clicks / data.metric2Impressions) * 100 : 0)
+          : props.metric2 === 'costPerClick'
+          ? (data.metric2Clicks ? data.metric2Cost / data.metric2Clicks : 0)
+          : props.metric2 === 'costPerThousandImpressions'
+          ? (data.metric2Impressions ? (data.metric2Cost / data.metric2Impressions) * 1000 : 0)
+          : props.metric2 === 'costPerConversion'
+          ? (data.metric2ExternalWebsiteConversions ? data.metric2Cost / data.metric2ExternalWebsiteConversions : 0)
+          : data.metric2;
+        return { key, date: data.rawDate, metric1: m1, metric2: m2 };
+      }).sort((a, b) => {
         const dateA = new Date(a.date.year, a.date.month - 1, a.date.day); // Correct month
         const dateB = new Date(b.date.year, b.date.month - 1, b.date.day); // Correct month
         return dateA - dateB;
@@ -185,12 +260,13 @@ export default {
       try {
         const startDate = formatDate(props.chartStartDate);
         const endDate = formatDate(props.chartEndDate);
+        const fieldsParam = buildFields(props.metric1, props.metric2);
 
         const response = await api.get('/linkedin/chart-data', {
           params: {
             start: startDate,
             end: endDate,
-            fields: `${props.metric1},${props.metric2}`,
+            fields: fieldsParam,
             accountId: props.selectedAdAccountId || 'YOUR_FALLBACK_ID',
             timeGranularity: computedGranularity.value,
             campaigns: props.selectedCampaignIds // Send campaigns as an array
@@ -199,6 +275,7 @@ export default {
         });
 
         allData.value = response.data.elements || [];
+        console.log("🐒 ~ allData.value:", allData.value)
         updateChart();
       } catch (error) {
         console.error('Error fetching LinkedIn chart data:', error);

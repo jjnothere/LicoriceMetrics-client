@@ -535,5 +535,12 @@ export default {
   top: 0;
   z-index: 2;
   background-color: white;
+  margin-bottom: 1rem;
+}
+
+.sticky-chart-container.scrolled {
+  box-shadow: 0 6px 10px -4px rgba(0,0,0,0.25);
+  border-bottom: 3px solid #ccc;
+  margin-bottom: 1rem;
 }
 </style>
