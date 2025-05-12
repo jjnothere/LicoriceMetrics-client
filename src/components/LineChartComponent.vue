@@ -324,7 +324,8 @@ export default {
               pointRadius: labels.map((label) =>
                 changeDates.includes(label) ? 3 : 0
               ),
-              borderWidth: 2
+              borderWidth: 2,
+              yAxisID: 'yAxis1'
             },
             {
               label: metricMapping[props.metric2] || props.metric2,
@@ -337,7 +338,8 @@ export default {
               pointRadius: labels.map((label) =>
                 changeDates.includes(label) ? 3 : 0
               ),
-              borderWidth: 2
+              borderWidth: 2,
+              yAxisID: 'yAxis2'
             }
           ]
         },
@@ -405,9 +407,31 @@ export default {
           },
           scales: {
             x: { type: 'category' },
-            y: {
+            yAxis1: {
+              type: 'linear',
+              display: true,
+              position: 'left',
+              ticks: {
+                color: '#6A9A1F'
+              },
+              title: {
+                display: true,
+                text: metricMapping[props.metric1] || props.metric1,
+                color: '#6A9A1F'
+              }
+            },
+            yAxis2: {
+              type: 'linear',
+              display: true,
               position: 'right',
-              title: { display: true, text: 'Value' }
+              ticks: {
+                color: '#D32F2F'
+              },
+              title: {
+                display: true,
+                text: metricMapping[props.metric2] || props.metric2,
+                color: '#D32F2F'
+              }
             }
           }
         }
