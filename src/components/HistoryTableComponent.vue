@@ -840,16 +840,16 @@ td {
 
 .export-button {
   padding: 5px 10px; /* Adjust padding to match FilterComponent */
-  background-color: #1C1B21;
+  background-color: #ccc;
   color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 20px;
   cursor: pointer;
   transition: background-color 0.3s;
 }
 
 .export-button:hover {
-  background-color: #333;
+  background-color: #61bca8;
 }
 
 .filter-and-export-container {

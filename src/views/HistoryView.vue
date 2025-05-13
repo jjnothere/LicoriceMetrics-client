@@ -540,4 +540,17 @@ export default {
   border-bottom: 3px solid #ccc;
   margin-bottom: 1rem;
 }
+
+.toggle-chart-button {
+  padding: 0.25rem .5rem;
+  background-color: #ccc;
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+.toggle-chart-button:hover {
+  background-color: #61bca8;
+}
 </style>
