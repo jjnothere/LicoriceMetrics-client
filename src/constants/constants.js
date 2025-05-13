@@ -165,5 +165,6 @@ export const metricMapping = {
   viralVideoMidpointCompletions: 'Viral Video Midpoint Completions',
   viralVideoStarts: 'Viral Video Starts',
   viralVideoThirdQuartileCompletions: 'Viral Video Third Quartile Completions',
-  viralVideoViews: 'Viral Video Views'
+  viralVideoViews: 'Viral Video Views',
+  costPerThousandUniqueUsers: 'Cost Per Thousand Unique Users (CPMUU)'
 };

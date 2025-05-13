@@ -29,6 +29,9 @@ function buildFields(m1, m2) {
     } else if (metric === 'costPerConversion') {
       fields.add('costInLocalCurrency');
       fields.add('externalWebsiteConversions');
+    } else if (metric === 'costPerThousandUniqueUsers') {
+      fields.add('approximateMemberReach');
+      fields.add('costInLocalCurrency');
     } else {
       fields.add(metric);
     }
@@ -156,6 +159,9 @@ export default {
         } else if (props.metric1 === 'costPerConversion') {
           aggregatedMap[key].metric1Cost += parseFloat(item.costInLocalCurrency) || 0;
           aggregatedMap[key].metric1ExternalWebsiteConversions += parseFloat(item.externalWebsiteConversions) || 0;
+        } else if (props.metric1 === 'costPerThousandUniqueUsers') {
+          aggregatedMap[key].metric1Cost += parseFloat(item.costInLocalCurrency) || 0;
+          aggregatedMap[key].metric1Reach = (aggregatedMap[key].metric1Reach || 0) + parseFloat(item.approximateMemberReach) || 0;
         } else {
           aggregatedMap[key].metric1 += parseFloat(item[props.metric1]) || 0;
         }
@@ -173,6 +179,9 @@ export default {
         } else if (props.metric2 === 'costPerConversion') {
           aggregatedMap[key].metric2Cost += parseFloat(item.costInLocalCurrency) || 0;
           aggregatedMap[key].metric2ExternalWebsiteConversions += parseFloat(item.externalWebsiteConversions) || 0;
+        } else if (props.metric2 === 'costPerThousandUniqueUsers') {
+          aggregatedMap[key].metric2Cost += parseFloat(item.costInLocalCurrency) || 0;
+          aggregatedMap[key].metric2Reach = (aggregatedMap[key].metric2Reach || 0) + parseFloat(item.approximateMemberReach) || 0;
         } else {
           aggregatedMap[key].metric2 += parseFloat(item[props.metric2]) || 0;
         }
@@ -187,6 +196,8 @@ export default {
           ? (data.metric1Impressions ? (data.metric1Cost / data.metric1Impressions) * 1000 : 0)
           : props.metric1 === 'costPerConversion'
           ? (data.metric1ExternalWebsiteConversions ? data.metric1Cost / data.metric1ExternalWebsiteConversions : 0)
+          : props.metric1 === 'costPerThousandUniqueUsers'
+          ? (data.metric1Reach ? (data.metric1Cost / data.metric1Reach) * 1000 : 0)
           : data.metric1;
         let m2 = props.metric2 === 'clickThroughRate'
           ? (data.metric2Impressions ? (data.metric2Clicks / data.metric2Impressions) * 100 : 0)
@@ -196,6 +207,8 @@ export default {
           ? (data.metric2Impressions ? (data.metric2Cost / data.metric2Impressions) * 1000 : 0)
           : props.metric2 === 'costPerConversion'
           ? (data.metric2ExternalWebsiteConversions ? data.metric2Cost / data.metric2ExternalWebsiteConversions : 0)
+          : props.metric2 === 'costPerThousandUniqueUsers'
+          ? (data.metric2Reach ? (data.metric2Cost / data.metric2Reach) * 1000 : 0)
           : data.metric2;
         return { key, date: data.rawDate, metric1: m1, metric2: m2 };
       }).sort((a, b) => {
