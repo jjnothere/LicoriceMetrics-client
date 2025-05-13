@@ -8,10 +8,10 @@
       <button class="filter-button" :class="{ active: isActive('adType') }" @click="toggleAdType" style="--filter-color: #154360;">Ad Type</button>
       <button class="filter-button" :class="{ active: isActive('nameStatus') }" @click="toggleNameStatus" style="--filter-color: #D32F2F;">Status/Name</button>
       <button class="filter-button" :class="{ active: isActive('creatives') }" @click="toggleCreatives" style="--filter-color: #5DADE2;">Creatives</button>
-      <button class="filter-button" :class="{ active: isActive('select') }" @click="openModal" style="--filter-color: black;">Select</button>
-      <button class="filter-button" @click="openSavePresetModal" style="--filter-color: green;">Save Preset</button>
+      <button class="filter-button" :class="{ active: isActive('select') }" @click="openModal" style="--filter-color: black;">Campaign Select</button>
+      <button class="filter-button" @click="openSavePresetModal" style="--filter-color: green;">Save Filter</button>
       <select class="preset-dropdown" v-model="selectedPreset" @change="applyPreset">
-        <option value="" disabled>Select Preset</option>
+        <option value="" disabled>Select Filter</option>
         <option v-for="preset in presets" :key="preset.name" :value="preset.name">
           {{ preset.name }}
         </option>
@@ -28,15 +28,15 @@
     <!-- Save Preset Modal -->
     <div v-if="showSavePresetModal" class="modal-overlay" @click.self="closeSavePresetModal">
       <div class="modal-content">
-        <h3>Save Preset</h3>
+        <h3>Save Filter</h3>
         <input
           type="text"
           v-model="newPresetName"
-          placeholder="Enter preset name"
+          placeholder="Enter filter name"
           class="preset-name-input"
         />
         <div class="existing-presets">
-          <h4>Existing Presets ({{ presets.length }}/5)</h4>
+          <h4>Existing Filters ({{ presets.length }}/5)</h4>
           <ul>
             <li v-for="preset in presets" :key="preset.name">
               {{ preset.name }}
@@ -155,7 +155,7 @@ export default {
         (this.activeFilters.length === 1 && this.activeFilters.includes('all'));
 
       if (hasNoFiltersOrOnlyAll && !this.searchText.trim()) {
-        alert('Please select your filters and/or enter a search term before saving a preset.');
+        alert('Please select your filters and/or enter a search term before saving a filter.');
         return;
       }
 
@@ -169,7 +169,7 @@ export default {
     async savePreset() {
       // Prevent saving more than 5 presets
       if (this.presets.length >= 5) {
-        alert('You have reached the maximum number of presets (5). Please delete one before saving a new preset.');
+        alert('You have reached the maximum number of filters (5). Please delete one before saving a new preset.');
         return;
       }
 
@@ -180,7 +180,7 @@ export default {
 
       // Check for duplicate preset name
       if (this.presets.find(p => p.name.toLowerCase() === this.newPresetName.trim().toLowerCase())) {
-        alert('A preset with this name already exists. Please use a different name.');
+        alert('A filter with this name already exists. Please use a different name.');
         return;
       }
 
@@ -189,7 +189,7 @@ export default {
         (this.activeFilters.length === 1 && this.activeFilters.includes('all'));
 
       if (hasNoFiltersOrOnlyAll && !this.searchText.trim()) {
-        alert('Please select your filters and/or enter a search term before saving a preset.');
+        alert('Please select your filters and/or enter a search term before saving a filter.');
         return;
       }
 
@@ -206,8 +206,8 @@ export default {
         this.selectedPreset = this.newPresetName;
         this.closeSavePresetModal(); // Close the modal
       } catch (error) {
-        console.error('Error saving preset:', error);
-        alert('Failed to save preset.');
+        console.error('Error saving filter:', error);
+        alert('Failed to save filter.');
       }
     },
     async deletePreset(presetName) {
@@ -218,8 +218,8 @@ export default {
         });
         this.fetchPresets();
       } catch (error) {
-        console.error('Error deleting preset:', error);
-        alert('Failed to delete preset.');
+        console.error('Error deleting filter:', error);
+        alert('Failed to delete filter.');
       }
     },
     async fetchPresets() {

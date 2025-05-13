@@ -288,7 +288,6 @@ export default {
         });
 
         allData.value = response.data.elements || [];
-        console.log("🐒 ~ allData.value:", allData.value)
         updateChart();
       } catch (error) {
         console.error('Error fetching LinkedIn chart data:', error);
