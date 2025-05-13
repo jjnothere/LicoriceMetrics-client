@@ -562,19 +562,24 @@ export default {
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     };
 
+    // Updated exportToCSV to match the frontend table structure and formatting
     const exportToCSV = () => {
-      const data = filteredDifferences.value.map((diff) => {
-        const changes = Object.entries(diff.changes)
+      const data = filteredAndSearchedDifferences.value.map((diff) => {
+        // Format changes to match the table format
+        const formattedChanges = Object.entries(diff.changes)
           .map(([key, value]) => {
-            return `${key}: ${Array.isArray(value) ? value.join(', ') : value}`;
+            const formattedChange = getFormattedChanges(value)
+              .map(change => `${change.key}: ${Array.isArray(change.value) ? change.value.join(', ') : change.value}`)
+              .join('; ');
+            return `${keyMapping.value[key] || key}: ${formattedChange}`;
           })
           .join('; ');
 
         return {
           Campaign: diff.campaign,
           Date: diff.date,
-          Changes: changes,
-          Notes: diff.notes ? diff.notes.map((note) => note.note).join('; ') : '',
+          Changes: formattedChanges,
+          Notes: diff.notes ? diff.notes.map((note) => `${note.note} (${formatTimestamp(note.timestamp)})`).join('; ') : '',
         };
       });
 

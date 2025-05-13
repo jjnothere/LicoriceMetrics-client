@@ -249,10 +249,7 @@ export default {
         if (diff.changes && Array.isArray(diff.changes.creatives)) {
           diff.changes.creatives = diff.changes.creatives.map(creative => {
             return {
-              ...creative,
-              description: creative.added
-                ? `Added creative: ${creative.name}`
-                : `Removed creative: ${creative.name}`
+              ...creative
             };
           });
         }
