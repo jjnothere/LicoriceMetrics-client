@@ -210,6 +210,7 @@ export default {
     const keyMapping = ref(keyMappingConst);
     const addNoteRefs = ref({});
     const editNoteRefs = ref({});
+    const expansionsMap = ref({});
 
     // Ensure differences are reactive and initialize necessary properties
     const initializeDifferences = (newDifferences) => {
@@ -221,10 +222,17 @@ export default {
       }));
     };
 
+    // Merge expansions on updated differences
     watch(
       () => props.differences,
       (newDifferences) => {
-        differences.value = initializeDifferences(newDifferences);
+        differences.value = initializeDifferences(newDifferences).map(diff => {
+          const saved = expansionsMap.value[diff._id] || {};
+          return {
+            ...diff,
+            expandedChanges: { ...saved, ...diff.expandedChanges }
+          };
+        });
       },
       { immediate: true }
     );
@@ -460,13 +468,10 @@ export default {
     };
 
     const toggleChangeDetail = (differenceId, changeKey) => {
-      const difference = differences.value.find((diff) => diff._id === differenceId);
+      const difference = differences.value.find(diff => diff._id === differenceId);
       if (difference) {
-        if (!difference.expandedChanges) {
-          difference.expandedChanges = {};
-        }
-        // Update the expandedChanges state without triggering unnecessary reactivity
-        difference.expandedChanges = { ...difference.expandedChanges, [changeKey]: !difference.expandedChanges[changeKey] };
+        difference.expandedChanges[changeKey] = !difference.expandedChanges[changeKey];
+        expansionsMap.value[differenceId] = difference.expandedChanges;
       }
     };
 
