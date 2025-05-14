@@ -62,14 +62,14 @@
       <!-- chart + rest of page -->
       <div
         class="sticky-chart-container"
-        :class="{ 'scrolled': isStickyScrolled }"
         ref="stickyContainer"
       >
         <button class="toggle-chart-button" @click="toggleChart">
           {{ isChartExpanded ? 'Collapse Chart' : 'Expand Chart' }}
           <i :class="isChartExpanded ? 'fas fa-chevron-up' : 'fas fa-chevron-down'"></i>
         </button>
-        <div v-if="isChartExpanded" class="chart-content">
+        <!-- Use v-show to keep the chart mounted -->
+        <div v-show="isChartExpanded" class="chart-content">
           <LineChartComponent
             :selectedAdAccountId="selectedAdAccountId"
             :selectedTimeInterval="selectedTimeInterval"
@@ -360,17 +360,18 @@ export default {
       searchText.value = text;
     };
 
-    const isStickyScrolled = ref(false);
     const stickyContainer = ref(null);
 
-    const handleScroll = () => {
-      if (stickyContainer.value) {
-        isStickyScrolled.value = window.scrollY > stickyContainer.value.offsetTop;
-      }
-    };
-
     onMounted(() => {
-      window.addEventListener('scroll', handleScroll);
+      window.addEventListener('scroll', () => {
+        if (stickyContainer.value) {
+          if (window.scrollY > stickyContainer.value.offsetTop) {
+            stickyContainer.value.classList.add('scrolled');
+          } else {
+            stickyContainer.value.classList.remove('scrolled');
+          }
+        }
+      });
     });
 
     const isChartExpanded = ref(true);
@@ -409,7 +410,6 @@ export default {
       updateSearchText, // Return the updateSearchText method
       urnInfoMap, // Return the urnInfoMap state
       metricLabels, // Return the metricLabels
-      isStickyScrolled,
       stickyContainer,
       isChartExpanded,
       toggleChart,
