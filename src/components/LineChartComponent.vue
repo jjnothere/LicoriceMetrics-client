@@ -255,6 +255,36 @@ export default {
       return result;
     });
 
+    function mapToIntervalDate(dateStr) {
+      const d = new Date(dateStr);
+      if (computedGranularity.value === 'WEEKLY') {
+        // roll back to Monday
+        const day = d.getDay(),
+              offset = day === 0 ? 6 : day - 1;
+        d.setDate(d.getDate() - offset);
+        return new Intl.DateTimeFormat('en-US', {
+          year: 'numeric', month: '2-digit', day: '2-digit'
+        }).format(d);
+
+      } else if (computedGranularity.value === 'MONTHLY') {
+        // snap to first of month
+        return new Intl.DateTimeFormat('en-US', {
+          year: 'numeric', month: '2-digit', day: '2-digit'
+        }).format(new Date(d.getFullYear(), d.getMonth(), 1));
+
+      } else if (computedGranularity.value === 'QUARTERLY') {
+        // snap to quarter label (e.g. "Q2-2024")
+        const quarter = Math.floor(d.getMonth() / 3) + 1;
+        return `Q${quarter}-${d.getFullYear()}`;
+
+      } else {
+        // DAILY – leave as-is
+        return new Intl.DateTimeFormat('en-US', {
+          year: 'numeric', month: '2-digit', day: '2-digit'
+        }).format(d);
+      }
+    }
+
     // --- Replace getChangeDates computed property ---
     const getChangeDates = computed(() => Object.keys(groupedChangeKeys.value));
 
@@ -380,31 +410,39 @@ export default {
               }
             },
             annotation: {
-              annotations: getChangeDates.value.flatMap(date => {
-                const colors = (groupedChangeKeys.value[date] || []).map(key => {
-                  const mapped = keyMapping[key] || key;
-                  return colorMapping[mapped] || 'black';
-                }).filter((c, i, arr) => arr.indexOf(c) === i);
-                const n = colors.length;
-                const dashLen = 8;
-                return colors.map((color, index) => ({
-                  type: 'line',
-                  mode: 'vertical',
-                  scaleID: 'x',
-                  value: date,
-                  borderColor: color,
-                  borderWidth: 4,
-                  borderDash: [dashLen, dashLen * (n - 1)],
-                  borderDashOffset: index * dashLen,
-                  label: {
-                    content: index === 0 ? `Changes (${n})` : '',
-                    enabled: index === 0,
-                    position: 'top',
-                    backgroundColor: color
-                  },
-                  onClick: () => scrollToTableRow(date)
-                }));
-              })
+              annotations: (() => {
+                const bucketMap = {};
+                Object.entries(groupedChangeKeys.value).forEach(([rawDate, keys]) => {
+                  const bucket = mapToIntervalDate(rawDate);
+                  if (!bucketMap[bucket]) bucketMap[bucket] = new Set();
+                  keys.forEach(k => bucketMap[bucket].add(k));
+                });
+                return Object.entries(bucketMap).flatMap(([bucketDate, keySet]) => {
+                  const colors = Array.from(keySet).map(key => {
+                    const mapped = keyMapping[key] || key;
+                    return colorMapping[mapped] || 'black';
+                  }).filter((c, i, a) => a.indexOf(c) === i);
+                  const n = colors.length;
+                  const dashLen = 8;
+                  return colors.map((color, idx) => ({
+                    type: 'line',
+                    mode: 'vertical',
+                    scaleID: 'x',
+                    value: bucketDate,
+                    borderColor: color,
+                    borderWidth: 4,
+                    borderDash: [dashLen, dashLen * (n - 1)],
+                    borderDashOffset: idx * dashLen,
+                    label: {
+                      content: idx === 0 ? `Changes (${n})` : '',
+                      enabled: idx === 0,
+                      position: 'top',
+                      backgroundColor: color
+                    },
+                    onClick: () => scrollToTableRow(bucketDate)
+                  }));
+                });
+              })()
             }
           },
           onClick: (event, elements) => {
