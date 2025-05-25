@@ -649,9 +649,8 @@ td:nth-child(1) {
 
 th:nth-child(2),
 td:nth-child(2) {
-  width: 80px;  /* Fixed width for Date column */
+  width: 75px;  /* Fixed width for Date column */
   white-space: nowrap;
-  text-align: center;
 }
 
 th:nth-child(3),

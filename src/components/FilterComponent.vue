@@ -21,7 +21,7 @@
       type="text"
       class="search-input"
       v-model="searchText"
-      placeholder="Search..."
+      placeholder="Search log..."
       @input="emitSearchText"
     />
     <ModalComponent v-if="showModal" @close="closeModal" :campaignGroups="campaignGroups" :selectedCampaigns="selectedCampaigns" @update:selectedCampaigns="updateSelectedCampaigns" @campaignIdsEmitted="emitCampaignIds" />
