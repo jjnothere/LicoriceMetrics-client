@@ -629,12 +629,7 @@ export default {
 </script>
 
 <style scoped>
-/* Your existing styles for the table remain the same */
-.table-container {
-  overflow-x: auto; /* Enable horizontal scrolling for the table */
-  -webkit-overflow-scrolling: touch; /* Smooth scrolling for mobile devices */
-}
-
+/* Allocate column widths for Campaign Name, Date, Changes, and Notes */
 table {
   margin-top: 10px;
   width: 100%;
@@ -644,6 +639,36 @@ table {
   overflow: hidden;
   color: #1C1B21;
   min-width: 600px; /* Ensure table doesn't shrink too much on small screens */
+  table-layout: fixed; /* Enable fixed layout for percentage widths */
+}
+
+th:nth-child(1),
+td:nth-child(1) {
+  width: 35%;    /* Campaign Name */
+}
+
+th:nth-child(2),
+td:nth-child(2) {
+  width: 80px;  /* Fixed width for Date column */
+  white-space: nowrap;
+  text-align: center;
+}
+
+th:nth-child(3),
+td:nth-child(3) {
+  width: 32.5%;  /* Changes */
+  word-wrap: break-word;
+}
+
+th:nth-child(4),
+td:nth-child(4) {
+  width: 32.5%;  /* Notes */
+  word-wrap: break-word;
+}
+
+.table-container {
+  overflow-x: auto; /* Enable horizontal scrolling for the table */
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling for mobile devices */
 }
 
 th:first-child {
