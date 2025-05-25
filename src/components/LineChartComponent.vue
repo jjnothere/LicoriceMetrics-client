@@ -73,6 +73,10 @@ export default {
     differences: {
       type: Array,
       required: true
+    },
+    activeFilters: {
+      type: Array,
+      default: () => []
     }
   },
   setup(props) {
@@ -232,41 +236,45 @@ export default {
       return formatter.format(date); // Format as "MM/DD/YYYY"
     };
 
-    const getChangeDates = computed(() => {
-      // Format dates as MM/DD/YYYY to match chart labels
-      return props.differences.map((diff) => {
-        const date = new Date(diff.date);
-        const formatter = new Intl.DateTimeFormat('en-US', {
+    // --- Insert groupedChangeKeys computed property ---
+    const groupedChangeKeys = computed(() => {
+      const map = {};
+      props.differences.forEach(diff => {
+        const formatted = new Intl.DateTimeFormat('en-US', {
           year: 'numeric',
           month: '2-digit',
           day: '2-digit'
-        });
-        return formatter.format(date); // Format as "MM/DD/YYYY"
+        }).format(new Date(diff.date));
+        if (!map[formatted]) map[formatted] = new Set();
+        Object.keys(diff.changes || {}).forEach(key => map[formatted].add(key));
       });
+      const result = {};
+      for (const [date, set] of Object.entries(map)) {
+        result[date] = Array.from(set);
+      }
+      return result;
     });
 
+    // --- Replace getChangeDates computed property ---
+    const getChangeDates = computed(() => Object.keys(groupedChangeKeys.value));
+
+    // --- Update getCategoryColors function ---
     const getCategoryColors = (date) => {
-      const change = props.differences.find(diff => {
-        const diffDate = new Date(diff.date);
-        const formattedDate = new Intl.DateTimeFormat('en-US', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit'
-        }).format(diffDate);
-        return formattedDate === date;
-      });
-
-      if (!change) {
-        return ['black']; // Default color if no match
+      const keys = groupedChangeKeys.value[date] || [];
+      let filteredKeys;
+      if (!props.activeFilters.length || props.activeFilters.includes('all')) {
+        filteredKeys = keys;
+      } else {
+        filteredKeys = keys.filter(key => {
+          const mapped = keyMapping[key] || key;
+          return props.activeFilters.includes(mapped);
+        });
       }
-
-      const changeKeys = Object.keys(change.changes || {});
-      const colors = changeKeys.map((key) => {
-        const mappedKey = keyMapping[key] || key; // Use alias mapping if available
-        return colorMapping[mappedKey] || 'black'; // Return the color or default to black
+      const colors = filteredKeys.map(key => {
+        const mapped = keyMapping[key] || key;
+        return colorMapping[mapped] || 'black';
       });
-
-      return colors.length > 0 ? colors : ['black']; // Ensure at least one color is returned
+      return colors.length ? colors : ['black'];
     };
 
     const fetchChartData = async () => {
@@ -372,40 +380,31 @@ export default {
               }
             },
             annotation: {
-              annotations: changeDates.flatMap((date) => {
-  const colors = getCategoryColors(date);
-  const n = colors.length;
-  
-  // The length (in px) of each color dash
-  const dashLen = 8;
-
-  // We map over all colors for this date, creating a separate "line" annotation for each color
-  return colors.map((color, index) => ({
-    type: 'line',
-    mode: 'vertical',
-    scaleID: 'x',
-    value: date,
-    borderColor: color,
-    borderWidth: 4,
-    
-    // Key part: repeating dash pattern. For n colors, each line "turns on" for dashLen
-    // and "turns off" for dashLen*(n - 1). 
-    borderDash: [dashLen, dashLen * (n - 1)],
-    
-    // Offset each color line so they interleave like stripes
-    borderDashOffset: index * dashLen,
-
-    label: {
-      // Only show label on the first color line so it's not repeated
-      content: index === 0 ? `Changes (${n})` : '',
-      enabled: index === 0,
-      position: 'top',
-      backgroundColor: color
-    },
-
-    onClick: () => scrollToTableRow(date) // Same onClick you had before
-  }));
-})
+              annotations: getChangeDates.value.flatMap(date => {
+                const colors = (groupedChangeKeys.value[date] || []).map(key => {
+                  const mapped = keyMapping[key] || key;
+                  return colorMapping[mapped] || 'black';
+                }).filter((c, i, arr) => arr.indexOf(c) === i);
+                const n = colors.length;
+                const dashLen = 8;
+                return colors.map((color, index) => ({
+                  type: 'line',
+                  mode: 'vertical',
+                  scaleID: 'x',
+                  value: date,
+                  borderColor: color,
+                  borderWidth: 4,
+                  borderDash: [dashLen, dashLen * (n - 1)],
+                  borderDashOffset: index * dashLen,
+                  label: {
+                    content: index === 0 ? `Changes (${n})` : '',
+                    enabled: index === 0,
+                    position: 'top',
+                    backgroundColor: color
+                  },
+                  onClick: () => scrollToTableRow(date)
+                }));
+              })
             }
           },
           onClick: (event, elements) => {
