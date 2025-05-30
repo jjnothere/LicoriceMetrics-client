@@ -28,6 +28,15 @@
             :enable-time-picker="false"
           />
         </div>
+
+        <!-- New row for campaign filter -->
+        <div class="control-group control-campaign-filter">
+          <CampaignFilterComponent
+            :selectedCampaignIds="selectedCampaignIds"
+            @campaignIdsEmitted="logCampaignIds"
+          />
+        </div>
+
         <div class="control-group control-interval">
           <label for="interval">Interval</label>
           <select id="interval" v-model="selectedTimeInterval">
@@ -113,6 +122,7 @@
 import HistoryTableComponent from '../components/HistoryTableComponent.vue';
 import LineChartComponent from '../components/LineChartComponent.vue';
 import FilterComponent from '../components/FilterComponent.vue';
+import CampaignFilterComponent from '../components/CampaignFilterComponent.vue';
 import { ref, onMounted, watch, computed, reactive } from 'vue';
 import { useStore } from 'vuex';
 import api from '../api'; // Corrected path
@@ -127,7 +137,8 @@ export default {
     HistoryTableComponent,
     LineChartComponent,
     VueDatePicker,
-    FilterComponent
+    FilterComponent,
+    CampaignFilterComponent
   },
   setup() {
     const store = useStore();
@@ -338,7 +349,6 @@ export default {
       showAudienceOnly.value = false;
       showNameStatusOnly.value = false;
       showObjLocLangOnly.value = false;
-      selectedCampaignIds.value = [];
       activeFilters.value = ['all'];
     };
 
@@ -455,7 +465,8 @@ export default {
   grid-template-columns: 1fr 1fr auto;
   grid-template-areas:
     "start-date end-date interval"
-    "metric1    metric2    interval";
+    "campaign-filter campaign-filter campaign-filter"
+    "metric1 metric2 ."; /* Place Metric 1 and Metric 2 on the same row */
   gap: 1rem;
   margin-bottom: 1.5rem;
   align-items: flex-end;
@@ -463,6 +474,7 @@ export default {
 
 .control-start-date  { grid-area: start-date; }
 .control-end-date    { grid-area: end-date; }
+.control-campaign-filter { grid-area: campaign-filter; }
 .control-metric1     { grid-area: metric1; }
 .control-metric2     { grid-area: metric2; }
 .control-interval    { grid-area: interval; }
@@ -474,6 +486,7 @@ export default {
     grid-template-areas:
       "start-date"
       "end-date"
+      "campaign-filter"
       "metric1"
       "metric2"
       "interval";
