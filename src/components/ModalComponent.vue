@@ -2,21 +2,23 @@
   <div class="modal-overlay" @click.self="close">
     <div class="modal-content">
       <button class="close-button" @click="close">X</button>
-      <h2>Campaign Groups</h2>
-      <ul>
-        <li v-for="group in campaignGroups" :key="group.id">
-          <h3>
-            <input type="checkbox" @change="toggleGroup(group)" :checked="isGroupChecked(group)" />
-            {{ group.name }}
-          </h3>
-          <ul>
-            <li v-for="campaign in group.campaigns" :key="campaign.id">
-              <input type="checkbox" :checked="localSelectedCampaigns.includes(campaign.id)" @change="toggleCampaign(campaign.id)" />
-              {{ campaign.name }}
-            </li>
-          </ul>
-        </li>
-      </ul>
+      <div class="modal-body">
+        <h2>Campaign Groups</h2>
+        <ul>
+          <li v-for="group in campaignGroups" :key="group.id">
+            <h3>
+              <input type="checkbox" @change="toggleGroup(group)" :checked="isGroupChecked(group)" />
+              {{ group.name }}
+            </h3>
+            <ul>
+              <li v-for="campaign in group.campaigns" :key="campaign.id">
+                <input type="checkbox" :checked="localSelectedCampaigns.includes(campaign.id)" @change="toggleCampaign(campaign.id)" />
+                {{ campaign.name }}
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </div>
       <div class="modal-buttons">
         <button class="modal-button cancel" @click="close">Cancel</button>
         <button class="modal-button save" @click="ok">OK</button>
@@ -99,13 +101,21 @@ export default {
 }
 
 .modal-content {
+  display: flex;
+  flex-direction: column;
+  width: 80%;
+  max-width: 600px;
+  height: auto;       /* Grow/shrink with content */
+  max-height: 80vh;   /* Cap height */
   background: white;
   padding: 20px;
   border-radius: 10px;
-  width: 80%;
-  max-width: 600px;
-  max-height: 80%;
-  overflow-y: auto;
+  overflow: hidden;    /* Hide overflow on container */
+}
+
+.modal-body {
+  flex: 1 1 auto;
+  overflow-y: auto;    /* Scroll body content */
 }
 
 .close-button {
@@ -119,9 +129,12 @@ export default {
 }
 
 .modal-buttons {
+  flex-shrink: 0;      /* Always show buttons */
   display: flex;
   justify-content: flex-end;
-  margin-top: 20px;
+  margin-top: 1rem;
+  background: white;
+  padding-top: 0.5rem;
 }
 
 .modal-button {

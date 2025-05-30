@@ -1,9 +1,22 @@
 <template>
   <div class="campaign-filter-container">
-    <button class="filter-button" @click="openModal">Campaign Select</button>
-    <button class="filter-button" @click="openSavePresetModal">Save Filter</button>
+    <button
+      class="filter-button"
+      :class="{ active: selectedCampaigns.length > 0 }"
+      @click="openModal"
+      style="--filter-color: #61bca8;"
+    >
+      Campaign Filter
+    </button>
+    <button
+      class="filter-button"
+      @click="openSavePresetModal"
+      style="--filter-color: #ccc;"
+    >
+      Save Campaign Filter
+    </button>
     <select class="preset-dropdown" v-model="selectedPreset" @change="applyPreset">
-      <option value="" disabled>Select Filter</option>
+      <option value="" disabled>Saved Campaign Filters</option>
       <option v-for="preset in presets" :key="preset.name" :value="preset.name">
         {{ preset.name }}
       </option>
@@ -16,7 +29,7 @@
     <!-- Save Preset Modal -->
     <div v-if="showSavePresetModal" class="modal-overlay" @click.self="closeSavePresetModal">
       <div class="modal-content">
-        <h3>Save Filter</h3>
+        <h3>Save Campaign Filter</h3>
         <input
           type="text"
           v-model="newPresetName"
@@ -178,18 +191,20 @@ export default {
 
 .filter-button {
   padding: 5px 10px;
-  background-color: #ccc;
-  color: white;
-  border: none;
+  background-color: transparent;
+  color: var(--filter-color);
+  border: 2px solid var(--filter-color);
   border-radius: 20px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: background-color 0.3s, color 0.3s;
   font-size: 16px;
   font-weight: bold;
 }
 
+.filter-button.active,
 .filter-button:hover {
-  background-color: #61bca8;
+  background-color: var(--filter-color);
+  color: white;
 }
 
 .preset-dropdown {
