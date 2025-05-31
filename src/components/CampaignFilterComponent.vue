@@ -10,6 +10,7 @@
     </button>
     <select class="preset-dropdown" v-model="selectedPreset" @change="applyPreset">
       <option value="" disabled>Saved Campaign Filters</option>
+      <option value="NO_FILTER_VALUE">No Filter</option>
       <option v-for="preset in presets" :key="preset.name" :value="preset.name">
         {{ preset.name }}
       </option>
@@ -94,6 +95,7 @@ export default {
     },
     updateSelectedCampaigns(newSelectedCampaigns) {
       this.selectedCampaigns = newSelectedCampaigns;
+      this.selectedPreset = ''; // Revert to default selection
     },
     emitCampaignIds(ids) {
       this.$emit('campaignIdsEmitted', ids);
@@ -163,6 +165,14 @@ export default {
       }
     },
     applyPreset() {
+      if (this.selectedPreset === 'NO_FILTER_VALUE') {
+        // Clear out the selection
+        this.selectedCampaigns = [];
+        this.$emit('update:selectedCampaigns', this.selectedCampaigns);
+        this.$emit('campaignIdsEmitted', []);
+        return;
+      }
+
       const preset = this.presets.find(p => p.name === this.selectedPreset);
       if (!preset) return;
       this.selectedCampaigns = preset.selectedCampaigns || [];
