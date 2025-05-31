@@ -1,8 +1,5 @@
 <template>
   <div>
-    <div class="export-button-container">
-      <button class="export-button" @click="exportToCSV">Export to CSV</button>
-    </div>
     <div class="table-container">
       <table v-if="filteredAndSearchedDifferences.length > 0">
         <thead>
@@ -10,7 +7,12 @@
             <th>Campaign Name</th>
             <th>Date</th>
             <th>Changes</th>
-            <th>Notes</th>
+            <th>
+              Notes
+              <button class="export-button" style="float: right;" @click="exportToCSV">
+                Export to CSV
+              </button>
+            </th>
           </tr>
         </thead>
         <tbody>
