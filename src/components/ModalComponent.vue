@@ -20,8 +20,11 @@
         </ul>
       </div>
       <div class="modal-buttons">
+        <button class="modal-button save-filter" @click="$emit('openSavePresetModal')">
+          Save Campaign Filter
+        </button>
         <button class="modal-button cancel" @click="close">Cancel</button>
-        <button class="modal-button save" @click="ok">OK</button>
+        <button class="modal-button save" @click="ok">Apply</button>
       </div>
     </div>
   </div>
@@ -168,5 +171,17 @@ export default {
 .modal-button.save:hover {
   background-color: white;
   color: #61bca8;
+}
+
+.modal-button.save-filter {
+  background-color: white;
+  color: #61bca8;
+  border-color: #61bca8;
+  margin-right: 10px;
+}
+
+.modal-button.save-filter:hover {
+  background-color: #61bca8;
+  color: white;
 }
 </style>

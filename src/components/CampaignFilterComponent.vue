@@ -8,13 +8,6 @@
     >
       Campaign Filter
     </button>
-    <button
-      class="filter-button"
-      @click="openSavePresetModal"
-      style="--filter-color: #ccc;"
-    >
-      Save Campaign Filter
-    </button>
     <select class="preset-dropdown" v-model="selectedPreset" @change="applyPreset">
       <option value="" disabled>Saved Campaign Filters</option>
       <option v-for="preset in presets" :key="preset.name" :value="preset.name">
@@ -23,8 +16,15 @@
     </select>
 
     <!-- Campaign Selection Modal -->
-    <ModalComponent v-if="showModal" @close="closeModal" :campaignGroups="campaignGroups" :selectedCampaigns="selectedCampaigns"
-      @update:selectedCampaigns="updateSelectedCampaigns" @campaignIdsEmitted="emitCampaignIds" />
+    <ModalComponent
+      v-if="showModal"
+      @close="closeModal"
+      :campaignGroups="campaignGroups"
+      :selectedCampaigns="selectedCampaigns"
+      @update:selectedCampaigns="updateSelectedCampaigns"
+      @campaignIdsEmitted="emitCampaignIds"
+      @openSavePresetModal="openSavePresetModal"
+    />
 
     <!-- Save Preset Modal -->
     <div v-if="showSavePresetModal" class="modal-overlay" @click.self="closeSavePresetModal">
