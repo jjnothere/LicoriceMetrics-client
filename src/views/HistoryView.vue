@@ -36,7 +36,6 @@
             @campaignIdsEmitted="logCampaignIds"
           />
         </div>
-
         <div class="control-group control-interval">
           <label for="interval">Interval</label>
           <select id="interval" v-model="selectedTimeInterval">
@@ -48,23 +47,61 @@
         </div>
         <div class="control-group control-metric1">
           <label for="metric1">Metric 1</label>
-          <select id="metric1" v-model="selectedMetric1">
-            <option
-              v-for="metric in metricLabels"
-              :key="metric.key"
-              :value="metric.key"
-            >{{ metric.label }}</option>
-          </select>
+          <div class="dropdown" style="position: relative;">
+            <button class="dropdown-toggle" @click="() => { menu1Open = !menu1Open; if (menu1Open) menu2Open = false; }" type="button">
+              {{ metric1Label }}
+              <span class="caret"></span>
+            </button>
+            <ul v-show="menu1Open" class="dropdown-menu metric-dropdown">
+              <li v-for="(metrics, folderName) in metricFolders" :key="folderName" class="dropdown-submenu">
+                <div class="dropdown-submenu-folder">
+                  <div
+                    class="folder-toggle"
+                    @mouseenter="hoverFolder1(folderName)"
+                    :class="{ 'active-folder': openFolders1.includes(folderName) }"
+                  >
+                    <span>{{ folderName }}</span><span style="margin-left: auto;">▶</span>
+                  </div>
+                  <ul v-show="openFolders1.includes(folderName)">
+                    <li v-for="metricKey in metrics" :key="metricKey">
+                      <a href="#" @click.prevent="selectMetric1(metricKey)">
+                        {{ metricMapping[metricKey] }}
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+              </li>
+            </ul>
+          </div>
         </div>
         <div class="control-group control-metric2">
           <label for="metric2">Metric 2</label>
-          <select id="metric2" v-model="selectedMetric2">
-            <option
-              v-for="metric in metricLabels"
-              :key="metric.key"
-              :value="metric.key"
-            >{{ metric.label }}</option>
-          </select>
+          <div class="dropdown" style="position: relative;">
+            <button class="dropdown-toggle" @click="() => { menu2Open = !menu2Open; if (menu2Open) menu1Open = false; }" type="button">
+              {{ metric2Label }}
+              <span class="caret"></span>
+            </button>
+            <ul v-show="menu2Open" class="dropdown-menu metric-dropdown">
+              <li v-for="(metrics, folderName) in metricFolders" :key="folderName" class="dropdown-submenu">
+                <div class="dropdown-submenu-folder">
+                  <div
+                    class="folder-toggle"
+                    @mouseenter="hoverFolder2(folderName)"
+                    :class="{ 'active-folder': openFolders2.includes(folderName) }"
+                  >
+                    <span>{{ folderName }}</span><span style="margin-left: auto;">▶</span>
+                  </div>
+                  <ul v-show="openFolders2.includes(folderName)">
+                    <li v-for="metricKey in metrics" :key="metricKey">
+                      <a href="#" @click.prevent="selectMetric2(metricKey)">
+                        {{ metricMapping[metricKey] }}
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
 
@@ -123,13 +160,13 @@ import HistoryTableComponent from '../components/HistoryTableComponent.vue';
 import LineChartComponent from '../components/LineChartComponent.vue';
 import FilterComponent from '../components/FilterComponent.vue';
 import CampaignFilterComponent from '../components/CampaignFilterComponent.vue';
-import { ref, onMounted, watch, computed, reactive } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch, computed, reactive } from 'vue';
 import { useStore } from 'vuex';
 import api from '../api'; // Corrected path
 import { useAuth } from '../composables/auth';
 import VueDatePicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
-import { metricMapping } from '../constants/constants'; // Import metricMapping
+import { metricFolders, metricMapping } from '../constants/constants'; // Ensure metricFolders is imported
 
 export default {
   name: 'HistoryView',
@@ -164,6 +201,10 @@ export default {
 
     const selectedMetric1 = ref('clicks');
     const selectedMetric2 = ref('costInLocalCurrency');
+
+    // Computed labels for the metrics
+    const metric1Label = computed(() => metricMapping[selectedMetric1.value] || 'Select Metric 1');
+    const metric2Label = computed(() => metricMapping[selectedMetric2.value] || 'Select Metric 2');
     const campaignGroups = ref([]);
     const showCreativesOnly = ref(false); // State to track if creatives filter is active
     const showBudgetOnly = ref(false); // State to track if budget filter is active
@@ -173,6 +214,10 @@ export default {
     const showObjLocLangOnly = ref(false); // State to track if Obj/Loc/Lang filter is active
     const activeFilters = ref(['all']); // State to track active filters
     const searchText = ref(''); // State to track search text
+    const menu1Open = ref(false);
+    const menu2Open = ref(false);
+    const openFolders1 = ref([]);
+    const openFolders2 = ref([]);
 
     watch([selectedStartDate, selectedEndDate, selectedMetric1, selectedMetric2], () => {
       dateRange.value = { start: selectedStartDate.value, end: selectedEndDate.value };
@@ -384,10 +429,49 @@ export default {
       });
     });
 
+    // --- Dropdown Close on Outside Click ---
+    const handleClickOutside = (event) => {
+      const metric1Dropdown = document.querySelector('.control-metric1 .dropdown');
+      const metric2Dropdown = document.querySelector('.control-metric2 .dropdown');
+      if (metric1Dropdown && !metric1Dropdown.contains(event.target)) {
+        menu1Open.value = false;
+      }
+      if (metric2Dropdown && !metric2Dropdown.contains(event.target)) {
+        menu2Open.value = false;
+      }
+    };
+    onMounted(() => {
+      document.addEventListener('click', handleClickOutside);
+    });
+    onBeforeUnmount(() => {
+      document.removeEventListener('click', handleClickOutside);
+    });
+
     const isChartExpanded = ref(true);
 
     const toggleChart = () => {
       isChartExpanded.value = !isChartExpanded.value;
+    };
+
+    // Only one folder open at a time for both metric dropdowns
+    // Only one dropdown menu can be open at a time
+    const hoverFolder1 = (folderName) => {
+      openFolders1.value = [folderName];
+    };
+    const hoverFolder2 = (folderName) => {
+      openFolders2.value = [folderName];
+    };
+
+    const selectMetric1 = (key) => {
+      selectedMetric1.value = key;
+      menu1Open.value = false;
+      openFolders1.value = [];
+    };
+
+    const selectMetric2 = (key) => {
+      selectedMetric2.value = key;
+      menu2Open.value = false;
+      openFolders2.value = [];
     };
 
     return {
@@ -404,6 +488,8 @@ export default {
       metrics,
       selectedMetric1,
       selectedMetric2,
+      metric1Label,
+      metric2Label,
       campaignGroups,
       logCampaignIds,
       selectedCampaignIds,
@@ -423,6 +509,16 @@ export default {
       stickyContainer,
       isChartExpanded,
       toggleChart,
+      menu1Open,
+      menu2Open,
+      openFolders1,
+      openFolders2,
+      selectMetric1,
+      selectMetric2,
+      metricFolders,
+      metricMapping,
+      hoverFolder1,
+      hoverFolder2,
     };
   }
 }
@@ -565,5 +661,98 @@ export default {
 }
 .toggle-chart-button:hover {
   background-color: #61bca8;
+}
+/* Metric dropdown button style to match date picker & filter inputs */
+.dropdown-toggle {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background-color: #fff;
+  color: #333;
+  text-align: left;
+  position: relative;
+  box-sizing: border-box;
+}
+.dropdown-toggle .caret {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-top: 6px solid #333;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  content: "";
+  display: inline-block;
+  height: 0;
+  width: 0;
+}
+/* macOS-style metric dropdown and submenu */
+.metric-dropdown {
+  position: absolute;
+  z-index: 1000;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 0.25rem 0;
+  list-style: none;
+  min-width: 250px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-family: system-ui, sans-serif;
+  font-size: 14px;
+  color: #1C1B21;
+}
+
+.dropdown-submenu-folder {
+  position: relative;
+}
+
+.folder-toggle {
+  font-weight: 500;
+  padding: 8px 16px;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.folder-toggle:hover {
+  background-color: #f5f5f5;
+}
+
+.dropdown-submenu-folder > ul {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 0.25rem 0;
+  list-style: none;
+  min-width: 240px;
+  max-height: 300px;
+  overflow-y: auto;
+  box-shadow: 2px 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.dropdown-submenu-folder > ul li a {
+  display: block;
+  padding: 8px 16px;
+  text-decoration: none;
+  color: #1C1B21;
+}
+
+.dropdown-submenu-folder > ul li a:hover {
+  background-color: #eaeaea;
+}
+
+.folder-toggle.active-folder {
+  background-color: #eaeaea;
+  color: #1C1B21;
+}
+ul {
+  margin-top: 0px;
 }
 </style>
