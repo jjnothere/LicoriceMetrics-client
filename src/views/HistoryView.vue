@@ -57,7 +57,16 @@
                 <div class="dropdown-submenu-folder">
                   <div
                     class="folder-toggle"
+                    v-if="!isMobile"
                     @mouseenter="hoverFolder1(folderName)"
+                    :class="{ 'active-folder': openFolders1.includes(folderName) }"
+                  >
+                    <span>{{ folderName }}</span><span style="margin-left: auto;">▶</span>
+                  </div>
+                  <div
+                    class="folder-toggle"
+                    v-else
+                    @click="toggleFolder1(folderName)"
                     :class="{ 'active-folder': openFolders1.includes(folderName) }"
                   >
                     <span>{{ folderName }}</span><span style="margin-left: auto;">▶</span>
@@ -86,7 +95,16 @@
                 <div class="dropdown-submenu-folder">
                   <div
                     class="folder-toggle"
+                    v-if="!isMobile"
                     @mouseenter="hoverFolder2(folderName)"
+                    :class="{ 'active-folder': openFolders2.includes(folderName) }"
+                  >
+                    <span>{{ folderName }}</span><span style="margin-left: auto;">▶</span>
+                  </div>
+                  <div
+                    class="folder-toggle"
+                    v-else
+                    @click="toggleFolder2(folderName)"
                     :class="{ 'active-folder': openFolders2.includes(folderName) }"
                   >
                     <span>{{ folderName }}</span><span style="margin-left: auto;">▶</span>
@@ -218,6 +236,7 @@ export default {
     const menu2Open = ref(false);
     const openFolders1 = ref([]);
     const openFolders2 = ref([]);
+    const isMobile = ref(false);
 
     watch([selectedStartDate, selectedEndDate, selectedMetric1, selectedMetric2], () => {
       dateRange.value = { start: selectedStartDate.value, end: selectedEndDate.value };
@@ -474,6 +493,29 @@ export default {
       openFolders2.value = [];
     };
 
+    const checkMobile = () => {
+      isMobile.value = window.innerWidth <= 768;
+    };
+
+    onMounted(() => {
+      window.addEventListener('resize', checkMobile);
+      checkMobile();
+    });
+
+    onBeforeUnmount(() => {
+      window.removeEventListener('resize', checkMobile);
+    });
+
+    // Toggle folder 1 on click
+    const toggleFolder1 = (folderName) => {
+      openFolders1.value = openFolders1.value.includes(folderName) ? [] : [folderName];
+    };
+
+    // Toggle folder 2 on click
+    const toggleFolder2 = (folderName) => {
+      openFolders2.value = openFolders2.value.includes(folderName) ? [] : [folderName];
+    };
+
     return {
       selectedStartDate,
       selectedEndDate,
@@ -519,6 +561,9 @@ export default {
       metricMapping,
       hoverFolder1,
       hoverFolder2,
+      isMobile,
+      toggleFolder1, // Return toggleFolder1
+      toggleFolder2 // Return toggleFolder2
     };
   }
 }
@@ -754,5 +799,15 @@ export default {
 }
 ul {
   margin-top: 0px;
+}
+
+/* Mobile styles for dropdown submenu */
+@media (max-width: 768px) {
+  .dropdown-submenu-folder > ul {
+    position: relative;
+    top: 0;
+    left: 0;
+    margin-top: 0.5rem;
+  }
 }
 </style>
