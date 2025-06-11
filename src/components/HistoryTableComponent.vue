@@ -253,45 +253,55 @@ export default {
       }
     };
 
-    const saveNewNotePrompt = async (id) => {
+    const saveNewNotePrompt = (id) => {
       const noteState = editingNotes.value[id];
       if (!noteState || !noteState.newNote) return;
 
-      const token = document.cookie
-        .split('; ')
-        .find((row) => row.startsWith('accessToken='))
-        ?.split('=')[1];
+      // Find the difference object (change entry)
+      const change = differences.value.find(diff => diff._id === id);
+      if (!change) return;
 
-      try {
-        const { data } = await api.post(
-          '/add-note',
-          {
-            accountId: props.selectedAdAccountId,
-            campaignId: id,
-            newNote: noteState.newNote
-          },
-          {
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            withCredentials: true
-          }
-        );
-
-        const difference = differences.value.find(diff => diff._id === id);
-        if (difference) {
-          // Append the new note with the correct ID from the backend
-          difference.notes.push({
-            _id: data.noteId, // This must match what the backend sends
-            note: noteState.newNote,
-            timestamp: data.timestamp || new Date().toISOString()
-          });
-        }
-
-        delete editingNotes.value[id];
-      } catch (error) {
-        console.error("Error adding note:", error);
+      // Optimistic UI update: create a temporary note and push immediately
+      const tempId = ObjectID().toHexString();
+      const tempTimestamp = new Date().toISOString();
+      const tempNote = { _id: tempId, note: noteState.newNote, timestamp: tempTimestamp, temp: true };
+      if (change.notes) {
+        change.notes.push(tempNote);
       }
+
+      // Clear the editing state immediately
+      delete editingNotes.value[id];
+
+      // Fire the API call without awaiting UI update
+      api.post(
+        '/add-note',
+        {
+          campaignId: change.campaignId,
+          adAccountId: props.selectedAdAccountId,
+          changeId: change._id,
+          note: noteState.newNote
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          withCredentials: true
+        }
+      )
+        .then(({ data }) => {
+          // Replace tempId with real ID from server
+          const idx = change.notes.findIndex(n => n._id === tempId);
+          if (idx !== -1) {
+            change.notes[idx]._id = data.noteId;
+            change.notes[idx].timestamp = data.timestamp;
+            delete change.notes[idx].temp;
+          }
+        })
+        .catch(error => {
+          console.error('Error adding note:', error);
+          // Optionally remove the temp note on failure
+          change.notes = change.notes.filter(n => n._id !== tempId);
+        });
     };
 
     const enableEditMode = async (differenceId, noteId) => {
@@ -321,31 +331,41 @@ export default {
       const noteState = editingNotes.value[differenceId]?.[noteId];
       if (!noteState || !noteState.newNote) return;
 
+      // If this is a temp note that hasn't been saved yet, update locally without API call
+      const change = differences.value.find(diff => diff._id === differenceId);
+      const note = change?.notes.find(n => n._id === noteId);
+      if (note?.temp) {
+        note.note = noteState.newNote;
+        note.timestamp = new Date().toISOString();
+        delete editingNotes.value[differenceId][noteId];
+        return;
+      }
+
       const token = document.cookie
         .split('; ')
         .find((row) => row.startsWith('accessToken='))
         ?.split('=')[1];
 
       try {
-        const difference = differences.value.find((diff) => diff._id === differenceId);
-        if (!difference) {
+        if (!change) {
           console.error('Difference not found');
           return;
         }
 
-        const note = difference.notes.find((n) => n._id === noteId);
         if (!note) {
           console.error('Note not found');
           return;
         }
 
+        // Use the correct API endpoint and payload field names to match backend
         await api.post(
           '/edit-note',
           {
             accountId: props.selectedAdAccountId,
-            campaignId: differenceId,
-            noteId: String(noteId), // Ensure noteId is sent as a string
-            updatedNote: noteState.newNote
+            campaignId: change.campaignId, // actual campaign ID
+            changeId: differenceId,            // the _id of the change entry
+            noteId: noteId,
+            newText: noteState.newNote
           },
           {
             headers: { Authorization: `Bearer ${token}` },
@@ -364,6 +384,15 @@ export default {
     };
 
     const deleteNotePrompt = async (differenceId, noteId) => {
+      // Find the difference and note at the top
+      const difference = differences.value.find(diff => diff._id === differenceId);
+      const note = difference?.notes.find(n => n._id === noteId);
+      // If note is a temp note, just remove it locally
+      if (note?.temp) {
+        difference.notes = difference.notes.filter(n => n._id !== noteId);
+        return;
+      }
+
       const token = document.cookie
         .split('; ')
         .find((row) => row.startsWith('accessToken='))
@@ -383,7 +412,6 @@ export default {
           }
         );
 
-        const difference = differences.value.find((diff) => diff._id === differenceId);
         if (difference) {
           difference.notes = difference.notes.filter((note) => note._id !== noteId);
         }

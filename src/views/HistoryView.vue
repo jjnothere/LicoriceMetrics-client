@@ -267,13 +267,13 @@ export default {
 
     const checkForChanges = async () => {
       try {
-        if (!user.userId) {
-          console.error('User ID is not available');
+        if (!selectedAdAccountId.value) {
+          console.error('Ad Account ID is not available');
           return;
         }
         await api.post('/check-for-changes', {
           adAccountId: selectedAdAccountId.value,
-          userId: user.userId
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
         });
       } catch (error) {
         console.error('Error checking for changes:', error);
