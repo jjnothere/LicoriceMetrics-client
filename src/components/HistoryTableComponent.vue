@@ -17,14 +17,15 @@
         </thead>
         <tbody>
           <tr v-for="(difference) in filteredAndSearchedDifferences" :key="difference._id" :id="`changeRow-${formatDateForId(difference.date)}`">
-            <td class="campaign-name">{{ difference.campaign }}</td>
+            <td class="campaign-name" v-html="highlight(difference.campaign)"></td>
             <td>{{ difference.date }}</td>
             <td>
               <div v-for="(changeValue, changeKey) in difference.changes" :key="difference._id + '-' + changeKey" class="change-item">
                 <div class="change-header" @click="toggleChangeDetail(difference._id, changeKey)">
-                  <strong :style="{ color: getColorForChange(changeKey) }">
-                    {{ keyMapping[changeKey] || changeKey }}
-                  </strong>
+                  <strong
+                    :style="{ color: getColorForChange(changeKey) }"
+                    v-html="highlight(keyMapping[changeKey] || changeKey)"
+                  ></strong>
                   <i :class="difference.expandedChanges?.[changeKey] ? 'fas fa-chevron-down' : 'fas fa-chevron-up'" class="chevron-icon"></i>
                 </div>
                 <div v-if="difference.expandedChanges?.[changeKey]" class="change-details">
@@ -44,12 +45,10 @@
                       <!-- If runSchedule and value is a string, format as a date -->
                       <template v-if="changeKey === 'runSchedule'">
                         <template v-if="Array.isArray(entry.value)">
-                          <div v-for="(item, idx) in entry.value" :key="idx">
-                            {{ formatRunSchedule(item) }}
-                          </div>
+                          <div v-for="(item, idx) in entry.value" :key="idx" v-html="highlight(formatRunSchedule(item))"></div>
                         </template>
                         <template v-else>
-                          {{ formatRunSchedule(entry.value) }}
+                          <span v-html="highlight(formatRunSchedule(entry.value))"></span>
                         </template>
                       </template>
                       <!-- For non-runSchedule keys -->
@@ -57,13 +56,11 @@
                         <template v-if="Array.isArray(entry.value)">
                           <!-- Print each array item on its own line -->
                           <ul class="list-container">
-                            <li v-for="(item, idx) in entry.value" :key="idx" class="list-item">
-                              {{ item }}
-                            </li>
+                            <li v-for="(item, idx) in entry.value" :key="idx" class="list-item" v-html="highlight(item)"></li>
                           </ul>
                         </template>
                         <template v-else>
-                         {{ entry.value }}
+                          <span v-html="highlight(entry.value)"></span>
                         </template>
                       </template>
                     </span>
@@ -125,7 +122,7 @@
                   </div>
                   <!-- Display Note Text and Action Buttons -->
                   <div v-else>
-                    <span>{{ note.note }}</span>
+                    <span v-html="highlight(note.note)"></span>
                     <div class="icon-buttons">
                       <button class="icon-button" @click="enableEditMode(difference._id, note._id)">
                         <i class="fas fa-edit"></i>
@@ -166,7 +163,7 @@
                   </div>
                   <!-- Display Note Text and Action Buttons -->
                   <div v-else>
-                    <span>{{ difference.notes[difference.notes.length - 1].note }}</span>
+                    <span v-html="highlight(difference.notes[difference.notes.length - 1].note)"></span>
                     <div class="icon-buttons">
                       <button class="icon-button" @click="enableEditMode(difference._id, difference.notes[difference.notes.length - 1]._id)">
                         <i class="fas fa-edit"></i>
@@ -631,6 +628,28 @@ export default {
       }
     };
 
+    // Escape HTML to avoid XSS
+    const escapeHtml = (unsafe) => {
+      return String(unsafe).replace(/[&<>"']/g, (m) => {
+        switch (m) {
+          case '&': return '&amp;';
+          case '<': return '&lt;';
+          case '>': return '&gt;';
+          case '"': return '&quot;';
+          case "'": return '&#039;';
+        }
+      });
+    };
+
+    // Highlight occurrences of searchText
+    const highlight = (text) => {
+      if (!props.searchText) return escapeHtml(text);
+      const escaped = escapeHtml(text);
+      const pattern = props.searchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`(${pattern})`, 'gi');
+      return escaped.replace(regex, '<mark>$1</mark>');
+    };
+
     return {
       filteredAndSearchedDifferences,
       getColorForChange,
@@ -652,7 +671,8 @@ export default {
       toggleNotes, // Ensure toggleNotes is returned
       addNoteRefs,
       editNoteRefs,
-      formatRunSchedule
+      formatRunSchedule,
+      highlight
     };
   }
 };

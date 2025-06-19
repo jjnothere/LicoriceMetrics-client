@@ -511,13 +511,15 @@ export default {
       }
     );
 
-    watch(
-      () => props.differences,
-      () => {
-        updateChart();
-      },
-      { deep: true}
+    // Remove old watch on props.differences and use diffIdList for reactive chart update
+
+    const diffIdList = computed(() =>
+      props.differences.map(diff => diff._id).sort().join(',')
     );
+
+    watch(diffIdList, () => {
+      updateChart();
+    });
 
     return {
       chartCanvas
