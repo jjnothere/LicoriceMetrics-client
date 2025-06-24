@@ -77,14 +77,21 @@ const logout = async () => {
 };
 
 const setDefaultAdAccount = () => {
-  if (adAccounts.value.length > 0) {
+  const savedId = localStorage.getItem('selectedAdAccountId');
+  const found = adAccounts.value.find(acc => acc.id === savedId);
+
+  if (found) {
+    selectedAdAccount.value = found;
+  } else if (adAccounts.value.length > 0) {
     selectedAdAccount.value = adAccounts.value[0];
-    localStorage.setItem('selectedAdAccountId', selectedAdAccount.value.id);
-    store.dispatch('updateSelectedAdAccountId', selectedAdAccount.value.id);
-    emit('update:selectedAdAccount', selectedAdAccount.value.id);
   } else {
     console.warn('No ad accounts available.');
+    return;
   }
+
+  localStorage.setItem('selectedAdAccountId', selectedAdAccount.value.id);
+  store.dispatch('updateSelectedAdAccountId', selectedAdAccount.value.id);
+  emit('update:selectedAdAccount', selectedAdAccount.value.id);
 };
 
 const fetchAdAccountNames = async () => {
