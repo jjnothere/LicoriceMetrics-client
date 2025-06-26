@@ -280,6 +280,9 @@ export default {
       }
     };
 
+    // Track initialization state to prevent redundant watcher call on mount
+    let hasInitialized = false;
+
     const filteredDifferences = computed(() => {
       if (!dateRange.value.start || !dateRange.value.end) {
         console.error("Date range is not properly defined", dateRange.value);
@@ -328,6 +331,10 @@ export default {
             };
           });
         }
+        // Remove 'id' field from changes before returning
+        if (diff.changes && diff.changes.id) {
+          delete diff.changes.id;
+        }
         return diff;
       });
     });
@@ -358,10 +365,13 @@ export default {
       loading.value = false;
     };
 
-    onMounted(initializeData);
+    onMounted(async () => {
+      await initializeData();
+      hasInitialized = true;
+    });
 
     watch(selectedAdAccountId, async (newAdAccountId) => {
-      if (newAdAccountId) {
+      if (hasInitialized && newAdAccountId) {
         await checkForChanges();
         await fetchDifferences();
       }
