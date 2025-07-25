@@ -32,6 +32,7 @@
         <!-- New row for campaign filter -->
         <div class="control-group control-campaign-filter">
           <CampaignFilterComponent
+            :key="selectedAdAccountId"
             :selectedCampaignIds="selectedCampaignIds"
             @campaignIdsEmitted="logCampaignIds"
           />
@@ -370,8 +371,20 @@ export default {
       hasInitialized = true;
     });
 
-    watch(selectedAdAccountId, async (newAdAccountId) => {
-      if (hasInitialized && newAdAccountId) {
+    watch(selectedAdAccountId, async (newId, oldId) => {
+      if (hasInitialized && newId && newId !== oldId) {
+        // 1) Clear filters and selected campaigns
+        selectedCampaignIds.value = [];
+        searchText.value           = '';
+        showCreativesOnly.value   = false;
+        showBudgetOnly.value      = false;
+        showAdTypeOnly.value      = false;
+        showAudienceOnly.value    = false;
+        showNameStatusOnly.value  = false;
+        showObjLocLangOnly.value  = false;
+        activeFilters.value       = ['all'];
+
+        // 2) Fetch fresh data for the new account
         await checkForChanges();
         await fetchDifferences();
       }
@@ -379,7 +392,6 @@ export default {
 
     const handleAdAccountChange = (newAdAccount) => {
       store.dispatch('updateSelectedAdAccountId', newAdAccount.id);
-      fetchDifferences();
     };
 
     const logCampaignIds = (ids) => {

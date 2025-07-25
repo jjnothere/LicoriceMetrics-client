@@ -1,7 +1,10 @@
 <template>
   <div id="app">
     <HeaderComponent @ad-account-changed="handleAdAccountChange" v-if="isLoggedIn" />
-    <router-view />
+    <router-view v-slot="{ Component }">
+      <!-- Forward the ad-account-changed event into the current view -->
+      <component :is="Component" @ad-account-changed="handleAdAccountChange" />
+    </router-view>
   </div>
 </template>
 
