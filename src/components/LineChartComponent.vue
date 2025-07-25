@@ -467,6 +467,14 @@ export default {
                 display: true,
                 text: metricMapping[props.metric1] || props.metric1,
                 color: '#6A9A1F'
+              },
+              grid: {
+                drawOnChartArea: true,
+                drawBorder: true,
+                drawTicks: true
+              },
+              border: {
+                display: true
               }
             },
             yAxis2: {
@@ -480,6 +488,14 @@ export default {
                 display: true,
                 text: metricMapping[props.metric2] || props.metric2,
                 color: '#D32F2F'
+              },
+              grid: {
+                drawOnChartArea: false,
+                drawBorder: true,
+                drawTicks: false
+              },
+              border: {
+                display: true
               }
             }
           }
