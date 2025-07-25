@@ -4,8 +4,15 @@
       <button class="close-button" @click="close">X</button>
       <div class="modal-body">
         <h2>Campaign Groups</h2>
+        <!-- Search Input -->
+        <input
+          type="text"
+          class="search-input"
+          v-model="searchText"
+          placeholder="Search campaigns..."
+        />
         <ul>
-          <li v-for="group in campaignGroups" :key="group.id">
+          <li v-for="group in filteredCampaignGroups" :key="group.id">
             <h3>
               <input type="checkbox" @change="toggleGroup(group)" :checked="isGroupChecked(group)" />
               {{ group.name }}
@@ -45,8 +52,23 @@ export default {
   },
   data() {
     return {
-      localSelectedCampaigns: [...this.selectedCampaigns] // Use a local data property to manage selected campaigns
+      localSelectedCampaigns: [...this.selectedCampaigns], // Use a local data property to manage selected campaigns
+      searchText: '' // Add search text state
     };
+  },
+  computed: {
+    filteredCampaignGroups() {
+      if (!this.searchText.trim()) {
+        return this.campaignGroups;
+      }
+      const searchLower = this.searchText.toLowerCase();
+      return this.campaignGroups.map(group => ({
+        ...group,
+        campaigns: group.campaigns.filter(campaign =>
+          campaign.name.toLowerCase().includes(searchLower)
+        )
+      })).filter(group => group.campaigns.length > 0);
+    }
   },
   methods: {
     close() {
@@ -183,5 +205,15 @@ export default {
 .modal-button.save-filter:hover {
   background-color: #61bca8;
   color: white;
+}
+
+.search-input {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 14px;
+  box-sizing: border-box;
 }
 </style>

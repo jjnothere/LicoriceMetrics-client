@@ -835,6 +835,11 @@ td {
   animation: flash 1s ease-in-out 3;
 }
 
+.campaign-name {
+  word-break: break-word; /* Break long words to fit within the box */
+  overflow-wrap: break-word; /* Ensure long strings wrap to the next line */
+}
+
 .campaign-name .campaign-notes {
   white-space: normal;
   word-wrap: break-word;
