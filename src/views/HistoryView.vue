@@ -239,6 +239,40 @@ export default {
     const openFolders2 = ref([]);
     const isMobile = ref(false);
 
+    // --- Normalize odd targetingCriteria shapes coming from backend diffs ---
+    const normalizeTargetingCriteria = (change) => {
+      if (
+        !change ||
+        !change.targetingCriteria ||
+        !change.targetingCriteria.include ||
+        !Array.isArray(change.targetingCriteria.include.and)
+      ) {
+        return change;
+      }
+      const andArr = change.targetingCriteria.include.and;
+      for (let i = 0; i < andArr.length; i++) {
+        const entry = andArr[i];
+        // Detect shape: { added: { or: { facet: [urns] } } }
+        if (
+          entry &&
+          typeof entry === 'object' &&
+          entry.added &&
+          typeof entry.added === 'object' &&
+          entry.added.or &&
+          typeof entry.added.or === 'object'
+        ) {
+          const newOr = {};
+          for (const facet in entry.added.or) {
+            const arr = entry.added.or[facet];
+            // Wrap arrays under { added: [...] } to match renderer expectations
+            newOr[facet] = { added: Array.isArray(arr) ? arr : [] };
+          }
+          andArr[i] = { or: newOr };
+        }
+      }
+      return change;
+    };
+
     watch([selectedStartDate, selectedEndDate, selectedMetric1, selectedMetric2], () => {
       dateRange.value = { start: selectedStartDate.value, end: selectedEndDate.value };
     });
@@ -254,7 +288,10 @@ export default {
         urnInfoMap.value = fetchedUrnInfoMap || {}; // Initialize urnInfoMap
         differences.value = changes.reverse().map(change =>
           reactive({
+            // original fields
             ...change,
+            // normalize targetingCriteria shape for renderer (fixes skills facet showing raw URNs)
+            ...(change.changes ? { changes: normalizeTargetingCriteria({ ...change.changes }) } : {}),
             _id: typeof change._id === 'object' && change._id.$oid ? change._id.$oid : change._id,
             expandedChanges: change.expandedChanges || {}, // Initialize expandedChanges
             addingNote: false, // Initialize addingNote
