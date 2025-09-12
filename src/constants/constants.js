@@ -266,5 +266,5 @@ export const metricMapping = {
   viralVideoStarts: 'Viral Video Starts',
   viralVideoThirdQuartileCompletions: 'Viral Video Third Quartile Completions',
   viralVideoViews: 'Viral Video Views',
-  clickThroughRate: 'Click Through Rate' // Added CTR mapping
+  clickThroughRate: 'CTR (ClickThrough Rate)' // Added CTR mapping
 };
