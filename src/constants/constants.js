@@ -72,7 +72,8 @@ export const metricFolders = {
     'cardImpressions',
     'headlineClicks',
     'headlineImpressions',
-    'textUrlClicks'
+    'textUrlClicks',
+    'clickThroughRate' // Added CTR
   ],
   'Cost & Efficiency': [
     'costInLocalCurrency',
@@ -264,5 +265,6 @@ export const metricMapping = {
   viralVideoMidpointCompletions: 'Viral Video Midpoint Completions',
   viralVideoStarts: 'Viral Video Starts',
   viralVideoThirdQuartileCompletions: 'Viral Video Third Quartile Completions',
-  viralVideoViews: 'Viral Video Views'
+  viralVideoViews: 'Viral Video Views',
+  clickThroughRate: 'Click Through Rate' // Added CTR mapping
 };
