@@ -447,10 +447,10 @@ export default {
       } else if (typeof value === 'object') {
         // Handle objects with `added` and `removed` keys (e.g., targetingCriteria)
         if (value.added || value.removed) {
-          const addedMatches = value.added?.some((item) =>
+          const addedMatches = Array.isArray(value.added) && value.added.some((item) =>
             searchNestedValues(replaceUrnWithInfo(item), searchTextLower)
           );
-          const removedMatches = value.removed?.some((item) =>
+          const removedMatches = Array.isArray(value.removed) && value.removed.some((item) =>
             searchNestedValues(replaceUrnWithInfo(item), searchTextLower)
           );
           return addedMatches || removedMatches;
