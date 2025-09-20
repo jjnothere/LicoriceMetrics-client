@@ -236,6 +236,69 @@ export default {
       return formatter.format(date); // Format as "MM/DD/YYYY"
     };
 
+    // --- helpers to normalize labels and build complete bucket lists ---
+    function formatMDY(d) {
+      return new Intl.DateTimeFormat('en-US', {
+        year: 'numeric', month: '2-digit', day: '2-digit'
+      }).format(d);
+    }
+
+    function labelFromKey(key) {
+      // keys come back like "D:MM/DD/YYYY", "W:MM/DD/YYYY", "M:MM/DD/YYYY" or "Qn-YYYY"
+      return key.startsWith('Q') ? key : key.slice(2);
+    }
+
+    function buildBuckets(startDate, endDate, granularity) {
+      const buckets = [];
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      if (granularity === 'QUARTERLY') {
+        // Build Qn-YYYY between start and end
+        const sY = start.getFullYear();
+        const eY = end.getFullYear();
+        for (let y = sY; y <= eY; y++) {
+          for (let q = 1; q <= 4; q++) {
+            const qStartMonth = (q - 1) * 3;
+            const qStart = new Date(y, qStartMonth, 1);
+            const qEnd = new Date(y, qStartMonth + 3, 0);
+            if (qEnd < start || qStart > end) continue;
+            buckets.push(`Q${q}-${y}`);
+          }
+        }
+        return buckets;
+      }
+
+      if (granularity === 'MONTHLY') {
+        const d = new Date(start.getFullYear(), start.getMonth(), 1);
+        while (d <= end) {
+          buckets.push(formatMDY(new Date(d.getFullYear(), d.getMonth(), 1)));
+          d.setMonth(d.getMonth() + 1);
+        }
+        return buckets;
+      }
+
+      if (granularity === 'WEEKLY') {
+        const d = new Date(start);
+        // roll back to Monday
+        const day = d.getDay();
+        const offset = day === 0 ? 6 : day - 1;
+        d.setDate(d.getDate() - offset);
+        while (d <= end) {
+          buckets.push(formatMDY(d));
+          d.setDate(d.getDate() + 7);
+        }
+        return buckets;
+      }
+
+      // DAILY
+      const d = new Date(start);
+      while (d <= end) {
+        buckets.push(formatMDY(d));
+        d.setDate(d.getDate() + 1);
+      }
+      return buckets;
+    }
+
     // --- Insert groupedChangeKeys computed property ---
     const groupedChangeKeys = computed(() => {
       const map = {};
@@ -324,6 +387,7 @@ export default {
           },
           withCredentials: true
         });
+        console.log("🐒 ~ response:", JSON.stringify(response.data.elements))
 
         allData.value = response.data.elements || [];
         updateChart();
@@ -345,17 +409,12 @@ export default {
       });
 
       const aggregated = groupByInterval(filteredElements, computedGranularity.value);
-      const labels = [];
-      const metric1Data = [];
-      const metric2Data = [];
+      // --- new block: build labels and metric arrays with 0s for missing buckets ---
+      const labels = buildBuckets(props.chartStartDate, props.chartEndDate, computedGranularity.value);
+      const aggMap = new Map(aggregated.map(item => [labelFromKey(item.key), { m1: item.metric1, m2: item.metric2 }]));
+      const metric1Data = labels.map(l => (aggMap.get(l)?.m1 ?? 0));
+      const metric2Data = labels.map(l => (aggMap.get(l)?.m2 ?? 0));
       const changeDates = getChangeDates.value;
-
-      aggregated.forEach(item => {
-        const formattedDate = item.key.startsWith('Q') ? item.key : formatDateLabel(item.key.replace(/^./, ''));
-        labels.push(formattedDate);
-        metric1Data.push(item.metric1);
-        metric2Data.push(item.metric2);
-      });
 
       if (chartInstance) chartInstance.destroy();
       chartInstance = new Chart(chartCanvas.value, {
@@ -417,7 +476,9 @@ export default {
                   if (!bucketMap[bucket]) bucketMap[bucket] = new Set();
                   keys.forEach(k => bucketMap[bucket].add(k));
                 });
+                // Only annotate dates that exist as categories; otherwise Chart.js appends them to the end
                 return Object.entries(bucketMap).flatMap(([bucketDate, keySet]) => {
+                  if (!labels.includes(bucketDate)) return [];
                   const colors = Array.from(keySet).map(key => {
                     const mapped = keyMapping[key] || key;
                     return colorMapping[mapped] || 'black';
