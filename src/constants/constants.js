@@ -60,7 +60,8 @@ export const keyMapping = {
   unitCost: 'Unit Cost',
   version: 'Version',
   creatives: 'Creatives',
-  campaignAdded: 'Campaign Added'
+  campaignAdded: 'Campaign Added',
+  groupAdded: 'Campaign Group Added'
 }
 
 export const metricFolders = {

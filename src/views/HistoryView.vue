@@ -281,23 +281,42 @@ export default {
 
     const fetchDifferences = async () => {
       try {
-        const response = await api.get('/get-all-changes', {
-          params: { adAccountId: selectedAdAccountId.value }
-        });
-        const { changes, urnInfoMap: fetchedUrnInfoMap } = response.data;
-        urnInfoMap.value = fetchedUrnInfoMap || {}; // Initialize urnInfoMap
-        differences.value = changes.reverse().map(change =>
+        const [campRes, groupRes] = await Promise.all([
+          api.get('/get-all-changes', { params: { adAccountId: selectedAdAccountId.value } }),
+          api.get('/get-all-group-changes', { params: { adAccountId: selectedAdAccountId.value } })
+        ]);
+
+        // Campaign changes
+        const campChanges = (campRes.data?.changes || []).map(change =>
           reactive({
-            // original fields
             ...change,
-            // normalize targetingCriteria shape for renderer (fixes skills facet showing raw URNs)
             ...(change.changes ? { changes: normalizeTargetingCriteria({ ...change.changes }) } : {}),
             _id: typeof change._id === 'object' && change._id.$oid ? change._id.$oid : change._id,
-            expandedChanges: change.expandedChanges || {}, // Initialize expandedChanges
-            addingNote: false, // Initialize addingNote
-            newNote: '' // Initialize newNote
+            expandedChanges: change.expandedChanges || {},
+            addingNote: false,
+            newNote: '',
+            _entityType: 'campaign'
           })
         );
+        urnInfoMap.value = campRes.data?.urnInfoMap || {};
+
+        // Group changes (normalized to campaign-like fields)
+        const groupChanges = (groupRes.data?.changes || []).map(change =>
+          reactive({
+            ...change,
+            campaignId: typeof change.groupId === 'object' && change.groupId?.$oid ? change.groupId.$oid : String(change.groupId),
+            campaign: change.group || change.groupName || 'Unnamed Group',
+            _id: typeof change._id === 'object' && change._id?.$oid ? change._id.$oid : change._id,
+            expandedChanges: change.expandedChanges || {},
+            addingNote: false,
+            newNote: '',
+            _entityType: 'group'
+          })
+        );
+
+        // Merge and sort by date ascending (consistent with prior reverse logic)
+        const merged = [...campChanges, ...groupChanges].sort((a, b) => new Date(a.date) - new Date(b.date));
+        differences.value = merged;
       } catch (error) {
         console.error('Error fetching differences:', error);
       }
@@ -329,7 +348,7 @@ export default {
       return differences.value.filter(diff => {
         const diffDate = new Date(diff.date);
         const isWithinDateRange = diffDate >= new Date(dateRange.value.start) && diffDate <= new Date(dateRange.value.end);
-        const isSelectedCampaign = selectedCampaignIds.value.length === 0 || selectedCampaignIds.value.includes(diff.campaignId);
+        const isSelectedCampaign = (diff._entityType === 'group') ? true : (selectedCampaignIds.value.length === 0 || selectedCampaignIds.value.includes(diff.campaignId));
 
         // Define change types
         const isCreativeChange = diff.changes && Object.keys(diff.changes).some(key => ['creatives', 'creativeSelection', 'creativeRotation'].includes(key));
@@ -808,6 +827,7 @@ export default {
   color: #1C1B21;
 }
 
+
 .dropdown-submenu-folder {
   position: relative;
 }
@@ -870,3 +890,4 @@ ul {
   }
 }
 </style>
+

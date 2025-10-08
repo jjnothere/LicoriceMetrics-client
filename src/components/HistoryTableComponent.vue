@@ -4,7 +4,7 @@
       <table v-if="filteredAndSearchedDifferences.length > 0">
         <thead>
           <tr>
-            <th>Campaign Name</th>
+            <th>Name</th>
             <th>Date</th>
             <th>Changes</th>
             <th>
@@ -17,7 +17,10 @@
         </thead>
         <tbody>
           <tr v-for="(difference) in filteredAndSearchedDifferences" :key="difference._id" :id="`changeRow-${formatDateForId(difference.date)}`">
-            <td class="campaign-name" v-html="highlight(difference.campaign)"></td>
+            <td class="campaign-name">
+              <span v-html="highlight(difference.campaign)"></span>
+              <span v-if="difference._entityType==='group'" class="etype-badge">Group</span>
+            </td>
             <td>{{ difference.date }}</td>
             <td>
               <div v-for="(changeValue, changeKey) in difference.changes" :key="difference._id + '-' + changeKey" class="change-item">
@@ -270,18 +273,17 @@ export default {
       delete editingNotes.value[id];
 
       // Fire the API call without awaiting UI update
+      const isGroup = change._entityType === 'group';
+      const endpoint = isGroup ? '/group/add-note' : '/add-note';
+      const payload = isGroup
+        ? { groupId: change.campaignId, adAccountId: props.selectedAdAccountId, changeId: change._id, note: noteState.newNote }
+        : { campaignId: change.campaignId, adAccountId: props.selectedAdAccountId, changeId: change._id, note: noteState.newNote };
+
       api.post(
-        '/add-note',
+        endpoint,
+        payload,
         {
-          campaignId: change.campaignId,
-          adAccountId: props.selectedAdAccountId,
-          changeId: change._id,
-          note: noteState.newNote
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Content-Type': 'application/json' },
           withCredentials: true
         }
       )
@@ -355,20 +357,13 @@ export default {
         }
 
         // Use the correct API endpoint and payload field names to match backend
-        await api.post(
-          '/edit-note',
-          {
-            accountId: props.selectedAdAccountId,
-            campaignId: change.campaignId, // actual campaign ID
-            changeId: differenceId,            // the _id of the change entry
-            noteId: noteId,
-            newText: noteState.newNote
-          },
-          {
-            headers: { Authorization: `Bearer ${token}` },
-            withCredentials: true
-          }
-        );
+        const isGroup = change._entityType === 'group';
+        const endpoint = isGroup ? '/group/edit-note' : '/edit-note';
+        const payload = isGroup
+          ? { adAccountId: props.selectedAdAccountId, groupId: change.campaignId, changeId: differenceId, noteId, newText: noteState.newNote }
+          : { accountId: props.selectedAdAccountId, campaignId: change.campaignId, changeId: differenceId, noteId, newText: noteState.newNote };
+
+        await api.post(endpoint, payload, { headers: { Authorization: `Bearer ${token}` }, withCredentials: true });
 
         // Update the note locally
         note.note = noteState.newNote;
@@ -396,18 +391,13 @@ export default {
         ?.split('=')[1];
 
       try {
-        await api.post(
-          '/delete-note',
-          {
-            accountId: props.selectedAdAccountId,
-            campaignId: differenceId,
-            noteId: String(noteId) // Ensure noteId is sent as a string
-          },
-          {
-            headers: { Authorization: `Bearer ${token}` },
-            withCredentials: true,
-          }
-        );
+        const isGroup = difference._entityType === 'group';
+        const endpoint = isGroup ? '/group/delete-note' : '/delete-note';
+        const payload = isGroup
+          ? { adAccountId: props.selectedAdAccountId, changeId: differenceId, noteId: String(noteId) }
+          : { accountId: props.selectedAdAccountId, campaignId: differenceId, noteId: String(noteId) };
+
+        await api.post(endpoint, payload, { headers: { Authorization: `Bearer ${token}` }, withCredentials: true });
 
         if (difference) {
           difference.notes = difference.notes.filter((note) => note._id !== noteId);
@@ -608,7 +598,8 @@ export default {
           .join('; ');
 
         return {
-          Campaign: diff.campaign,
+          Name: `${diff.campaign}${diff._entityType === 'group' ? ' (group)' : ''}`,
+          Type: diff._entityType || 'campaign',
           Date: diff.date,
           Changes: formattedChanges,
           Notes: diff.notes ? diff.notes.map((note) => `${note.note} (${formatTimestamp(note.timestamp)})`).join('; ') : '',
@@ -641,11 +632,12 @@ export default {
       });
     };
 
-    // Highlight occurrences of searchText
+    // Highlight occurrences of searchText, handle non-string, and fix escaping
     const highlight = (text) => {
-      if (!props.searchText) return escapeHtml(text);
-      const escaped = escapeHtml(text);
-      const pattern = props.searchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const safe = (v) => (v == null ? '' : String(v));
+      if (!props.searchText) return escapeHtml(safe(text));
+      const escaped = escapeHtml(safe(text));
+      const pattern = safe(props.searchText).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const regex = new RegExp(`(${pattern})`, 'gi');
       return escaped.replace(regex, '<mark>$1</mark>');
     };
@@ -937,4 +929,14 @@ td {
   align-items: center;
   margin-bottom: 10px;
 }
+
+.etype-badge {
+  margin-left: 6px;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid #61bca8;
+  background: #e6f4ea;
+}
+
 </style>

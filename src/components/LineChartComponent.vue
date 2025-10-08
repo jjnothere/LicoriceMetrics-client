@@ -387,7 +387,6 @@ export default {
           },
           withCredentials: true
         });
-        console.log("🐒 ~ response:", JSON.stringify(response.data.elements))
 
         allData.value = response.data.elements || [];
         updateChart();
