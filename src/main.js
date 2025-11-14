@@ -10,6 +10,8 @@ import posthog from 'posthog-js';
 posthog.init('phc_NJi27xac5RdyUSUjCxdEvDiTDhMk1VFBe9LbL6ynRQs', {
   api_host: 'https://us.i.posthog.com',
   person_profiles: 'identified_only',
+  autocapture: true,
+  capture_pageview: true
 });
 
 const { checkAuthStatus } = useAuth();

@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuth } from '../composables/auth';
-import { usePostHog } from '../composables/usePostHog';
 import IndexView from '../views/IndexView.vue';
 import HistoryView from '../views/HistoryView.vue';
 import ProfileView from '../views/ProfileView.vue';
@@ -29,17 +28,6 @@ const router = createRouter({
 });
 
 
-const { posthog } = usePostHog();
-
-// Track route changes
-router.afterEach((to) => {
-  if (posthog) {
-    posthog.capture('$pageview', {
-      path: to.fullPath,
-      name: to.name,
-    });
-  }
-});
 
 router.beforeEach((to, from, next) => {
   const { isLoggedIn } = useAuth();
