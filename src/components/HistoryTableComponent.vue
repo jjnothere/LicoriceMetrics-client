@@ -527,8 +527,29 @@ export default {
             const nestedResult = formatNestedChange(item, prefix);
             result.push(...nestedResult);
           });
-        } else if (typeof nestedObject === 'object' && nestedObject !== null) {
+        }
+        // --- REPLACED else if block for object special handling ---
+        else if (typeof nestedObject === 'object' && nestedObject !== null) {
+          // Special handling for creative post author info
+          if (nestedObject.postAuthorName) {
+            const authorType = nestedObject.postAuthorType;
+            let authorLine;
+            if (authorType === 'person') {
+              authorLine = `Personal post by ${nestedObject.postAuthorName}`;
+            } else if (authorType === 'organization') {
+              authorLine = `Organization post: ${nestedObject.postAuthorName}`;
+            } else {
+              authorLine = nestedObject.postAuthorName;
+            }
+            result.push({ key: 'Post Author', value: authorLine });
+          }
+
           for (const key in nestedObject) {
+            // Skip raw author helper fields; we've already turned them into a nice one-liner.
+            if (key === 'postAuthorName' || key === 'postAuthorType') {
+              continue;
+            }
+
             if (!isNaN(key)) {
               const nestedResult = formatNestedChange(nestedObject[key], prefix);
               result.push(...nestedResult);
@@ -547,7 +568,9 @@ export default {
               result.push({ key: formattedKey, value: formattedValue });
             }
           }
-        } else {
+        }
+        // --- end replacement ---
+        else {
           result.push({ key: prefix, value: nestedObject });
         }
 
@@ -632,11 +655,19 @@ export default {
       });
     };
 
-    // Highlight occurrences of searchText, handle non-string, and fix escaping
+    // Helper to parse LinkedIn mentions of the form @[Name](urn:li:person:...)
+    const parseLinkedInMentions = (text) => {
+      if (!text) return text;
+      const mentionPattern = /@\[(.*?)\]\((urn:li:[^)]+)\)/g;
+      return text.replace(mentionPattern, (match, name) => name);
+    };
+
+    // Highlight occurrences of searchText, parse mentions, handle non-string, and fix escaping
     const highlight = (text) => {
       const safe = (v) => (v == null ? '' : String(v));
-      if (!props.searchText) return escapeHtml(safe(text));
-      const escaped = escapeHtml(safe(text));
+      const parsed = parseLinkedInMentions(safe(text));
+      if (!props.searchText) return escapeHtml(parsed);
+      const escaped = escapeHtml(parsed);
       const pattern = safe(props.searchText).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const regex = new RegExp(`(${pattern})`, 'gi');
       return escaped.replace(regex, '<mark>$1</mark>');
@@ -664,7 +695,8 @@ export default {
       addNoteRefs,
       editNoteRefs,
       formatRunSchedule,
-      highlight
+      highlight,
+      parseLinkedInMentions,
     };
   }
 };
